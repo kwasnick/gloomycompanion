@@ -360,10 +360,15 @@ function force_repaint_deck(deck) {
 }
 
 function update_card_size() {
-    var containers = document.getElementsByClassName('card-container');
+    // Only resize monster ability decks and not the modifier deck
+    var containers = document.querySelectorAll('.card-container');
     var base_width = 453; // default width in CSS
     for (var i = 0; i < containers.length; i++) {
-        containers[i].style.width = (base_width * card_size_factor) + 'px';
+        var c = containers[i];
+        if (c.className.indexOf('modifier') !== -1 || c.id === 'modifier-container') {
+            continue;
+        }
+        c.style.width = (base_width * card_size_factor) + 'px';
     }
     localStorage.setItem('card_size_factor', card_size_factor);
     refresh_ui();
@@ -380,9 +385,7 @@ function refresh_ui() {
         if (cards[i].className.indexOf("ability") !== -1) {
             var scale = cards[i].getBoundingClientRect().height / actual_card_height;
             var scaled_font_size = base_font_size * scale;
-
-            var font_pixel_size = Math.min(scaled_font_size, base_font_size);
-            tableau.style.fontSize = font_pixel_size + "px";
+            tableau.style.fontSize = scaled_font_size + "px";
             break;
         }
     }
