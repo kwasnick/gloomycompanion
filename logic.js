@@ -616,6 +616,31 @@ function double_draw(deck) {
   deck.advantage_to_clean = true;
 }
 
+function draw_next_ability_card(deck) {
+  if (deck.must_reshuffle()) {
+    reshuffle(deck, true);
+  }
+
+  visible_ability_decks.forEach(function (visible_deck) {
+    if (visible_deck.class == deck.class) {
+      visible_deck.draw_top_card();
+      flip_up_top_card(visible_deck);
+    }
+  });
+
+  write_to_storage(deck.name, JSON.stringify(deck));
+}
+
+function draw_all_monster_cards() {
+  var processed = {};
+  visible_ability_decks.forEach(function (deck) {
+    if (!processed[deck.class]) {
+      processed[deck.class] = true;
+      draw_next_ability_card(deck);
+    }
+  });
+}
+
 function load_modifier_deck() {
   var deck = {
     name: "Monster modifier deck",
@@ -1087,7 +1112,13 @@ function add_modifier_deck(container, deck, preserve_discards) {
   draw_two_button.onclick = double_draw.bind(null, modifier_deck);
   draw_two_button.title = "Click to draw two cards";
 
+  var draw_all_button = document.createElement("div");
+  draw_all_button.className = "button draw-all";
+  draw_all_button.onclick = draw_all_monster_cards;
+  draw_all_button.title = "Draw all monster cards";
+
   deck_column.appendChild(deck_space);
+  deck_column.appendChild(draw_all_button);
   deck_column.appendChild(draw_two_button);
   deck_column.appendChild(end_round_div);
 
