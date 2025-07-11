@@ -13,6 +13,8 @@ var card_size_factor =
 var draw_animation_enabled =
   localStorage.getItem("draw_animation_enabled") !== "false";
 
+var SHUFFLE_ANIMATION_TIME = 600; // ms, keep in sync with CSS
+
 var DECK_TYPES = {
   MODIFIER: "modifier",
   ABILITY: "ability",
@@ -482,6 +484,15 @@ function shuffle_deck(deck, include_discards) {
 
     card.ui.set_depth(-i - 6);
   }
+
+  if (draw_animation_enabled) {
+    deck.deck_space.classList.add("shuffle-animation");
+    window.setTimeout(function () {
+      deck.deck_space.classList.remove("shuffle-animation");
+    }, SHUFFLE_ANIMATION_TIME);
+  } else {
+    deck.deck_space.classList.remove("shuffle-animation");
+  }
 }
 
 function flip_up_top_card(deck) {
@@ -617,18 +628,27 @@ function double_draw(deck) {
 }
 
 function draw_next_ability_card(deck) {
-  if (deck.must_reshuffle()) {
-    reshuffle(deck, true);
+  function do_draw() {
+    visible_ability_decks.forEach(function (visible_deck) {
+      if (visible_deck.class == deck.class) {
+        visible_deck.draw_top_card();
+        flip_up_top_card(visible_deck);
+      }
+    });
+
+    write_to_storage(deck.name, JSON.stringify(deck));
   }
 
-  visible_ability_decks.forEach(function (visible_deck) {
-    if (visible_deck.class == deck.class) {
-      visible_deck.draw_top_card();
-      flip_up_top_card(visible_deck);
+  if (deck.must_reshuffle()) {
+    reshuffle(deck, true);
+    if (draw_animation_enabled) {
+      window.setTimeout(do_draw, SHUFFLE_ANIMATION_TIME);
+    } else {
+      do_draw();
     }
-  });
-
-  write_to_storage(deck.name, JSON.stringify(deck));
+  } else {
+    do_draw();
+  }
 }
 
 function draw_all_monster_cards() {
