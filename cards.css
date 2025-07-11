@@ -177,6 +177,20 @@
     cursor:                     pointer;
 }
 
+.draw-all.button
+{
+    position:                   absolute;
+    right:                      66%;
+    bottom:                     10px;
+    width:                      20%;
+    height:                     20%;
+    background-repeat:          no-repeat;
+    background-position:        center center;
+    background-size:            50%;
+    background-image:           url(images/draw-all.svg);
+    cursor:                     pointer;
+}
+
 .card-container.modifier
 {
     width:                      70%;
