@@ -559,3 +559,10 @@ img[src="images/shuffle.svg"]
     -webkit-transform:          rotateY(180deg);
     transform:                  rotateY(180deg);
 }
+
+body.no-animation .card {
+    -webkit-transition: none !important;
+    transition: none !important;
+    -webkit-animation: none !important;
+    animation: none !important;
+}

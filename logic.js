@@ -8,6 +8,9 @@ var deck_definitions = load_definition(DECK_DEFINITONS);
 var card_size_factor =
   parseFloat(localStorage.getItem("card_size_factor")) || 1;
 
+var draw_animation_enabled =
+  localStorage.getItem("draw_animation_enabled") !== "false";
+
 var DECK_TYPES = {
   MODIFIER: "modifier",
   ABILITY: "ability",
@@ -282,7 +285,11 @@ function load_ability_deck(deck_class, deck_name, level) {
       );
 
       card.ui.set_depth(-3);
-      card.ui.addClass("pull");
+      if (draw_animation_enabled) {
+        card.ui.addClass("pull");
+      } else {
+        card.ui.removeClass("pull");
+      }
       card.ui.flip_up(true);
       card.ui.removeClass("draw");
       card.ui.addClass("discard");
@@ -480,7 +487,7 @@ function flip_up_top_card(deck) {
     card.ui.push_down();
   }
 
-  if (deck.discard.length > 0) {
+  if (deck.discard.length > 0 && draw_animation_enabled) {
     deck.discard[0].ui.addClass("lift");
   }
 
@@ -492,8 +499,10 @@ function flip_up_top_card(deck) {
 function send_to_discard(card, pull_animation) {
   card.ui.set_depth(-3);
 
-  if (pull_animation) {
+  if (pull_animation && draw_animation_enabled) {
     card.ui.addClass("pull");
+  } else {
+    card.ui.removeClass("pull");
   }
 
   card.ui.flip_up(true);
@@ -614,7 +623,11 @@ function load_modifier_deck() {
     if (this.discard.length > 0) {
       var card = this.discard[this.discard.length - 1];
       card.ui.set_depth(-3);
-      card.ui.addClass("pull");
+      if (draw_animation_enabled) {
+        card.ui.addClass("pull");
+      } else {
+        card.ui.removeClass("pull");
+      }
       card.ui.flip_up(true);
       card.ui.removeClass("draw");
       card.ui.addClass("discard");
@@ -1307,6 +1320,21 @@ function init() {
   var cardsizeplus = document.getElementById("cardsizeplus");
   var cardsizeminus = document.getElementById("cardsizeminus");
   var showmodifierdeck = document.getElementById("showmodifierdeck");
+  var enableanimations = document.getElementById("enableanimations");
+
+  enableanimations.checked = draw_animation_enabled;
+  if (!draw_animation_enabled) {
+    document.body.classList.add("no-animation");
+  }
+  enableanimations.onchange = function () {
+    draw_animation_enabled = this.checked;
+    if (draw_animation_enabled) {
+      document.body.classList.remove("no-animation");
+    } else {
+      document.body.classList.add("no-animation");
+    }
+    localStorage.setItem("draw_animation_enabled", draw_animation_enabled);
+  };
 
   var decklist = new DeckList();
   var scenariolist = new ScenarioList(SCENARIO_DEFINITIONS);
