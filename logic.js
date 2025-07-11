@@ -4,6 +4,9 @@ var visible_ability_decks = [];
 var modifier_deck = null;
 var deck_definitions = load_definition(DECK_DEFINITONS);
 
+// scaling factor for card container width
+var card_size_factor = parseFloat(localStorage.getItem('card_size_factor')) || 1;
+
 var DECK_TYPES =
     {
         MODIFIER: "modifier",
@@ -354,6 +357,16 @@ function force_repaint_deck(deck) {
     var space = deck.deck_space;
     remove_child(space);
     place_deck(deck, space);
+}
+
+function update_card_size() {
+    var containers = document.getElementsByClassName('card-container');
+    var base_width = 453; // default width in CSS
+    for (var i = 0; i < containers.length; i++) {
+        containers[i].style.width = (base_width * card_size_factor) + 'px';
+    }
+    localStorage.setItem('card_size_factor', card_size_factor);
+    refresh_ui();
 }
 
 // This should be dynamic dependant on lines per card
@@ -850,8 +863,8 @@ function apply_deck_selection(decks, preserve_existing_deck_state) {
         list_item.appendChild(label);
     });
 
-    // Rescale card text if necessary
-    refresh_ui();
+    // Apply user preferred card size and rescale text if necessary
+    update_card_size();
 }
 
 function init_modifier_deck() {
@@ -1132,6 +1145,8 @@ function init() {
     var applydeckbtn = document.getElementById("applydecks");
     var applyscenariobtn = document.getElementById("applyscenario");
     var applyloadbtn = document.getElementById("applyload");
+    var cardsizeplus = document.getElementById("cardsizeplus");
+    var cardsizeminus = document.getElementById("cardsizeminus");
     var showmodifierdeck = document.getElementById("showmodifierdeck");
 
     var decklist = new DeckList();
@@ -1193,6 +1208,16 @@ function init() {
         else{
             modifier_deck_section.style.display = "block";
         }
+    }
+
+    cardsizeplus.onclick = function () {
+        card_size_factor += 0.1;
+        update_card_size();
+    }
+
+    cardsizeminus.onclick = function () {
+        card_size_factor = Math.max(0.5, card_size_factor - 0.1);
+        update_card_size();
     }
 
     window.onresize = refresh_ui.bind(null, visible_ability_decks);
