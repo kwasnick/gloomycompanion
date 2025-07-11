@@ -1268,6 +1268,36 @@ function ScenarioList(scenarios) {
   return scenariolist;
 }
 
+function load_saved_state(decklist, scenariolist) {
+  var selected_deck_names = JSON.parse(get_from_storage("selected_deck_names"));
+  if (selected_deck_names && selected_deck_names.length) {
+    decklist.set_selection(selected_deck_names);
+    var selected_decks = selected_deck_names.map(function (deck_names) {
+      return load_ability_deck(
+        deck_names.class,
+        deck_names.name,
+        deck_names.level
+      );
+    });
+    apply_deck_selection(selected_decks, true);
+
+    var scenario_number = parseInt(get_from_storage("scenario_number"));
+    if (!isNaN(scenario_number)) {
+      scenariolist.spinner.value = scenario_number;
+    }
+    var scenario_level = parseInt(get_from_storage("scenario_level"));
+    if (!isNaN(scenario_level)) {
+      scenariolist.level_selector.set_value(scenario_level);
+    }
+
+    var modifier_deck_section = document.getElementById("modifier-container");
+    var showmodifierdeck = document.getElementById("showmodifierdeck");
+    if (!showmodifierdeck.checked && modifier_deck_section) {
+      modifier_deck_section.style.display = "none";
+    }
+  }
+}
+
 function init() {
   var deckspage = document.getElementById("deckspage");
   var scenariospage = document.getElementById("scenariospage");
@@ -1283,6 +1313,8 @@ function init() {
 
   deckspage.insertAdjacentElement("afterbegin", decklist.ul);
   scenariospage.insertAdjacentElement("afterbegin", scenariolist.ul);
+
+  load_saved_state(decklist, scenariolist);
 
   applydeckbtn.onclick = function () {
     localStorage.clear();
@@ -1318,6 +1350,11 @@ function init() {
       return;
     }
     var selected_deck_names = scenariolist.get_scenario_decks();
+    write_to_storage("scenario_number", scenariolist.spinner.value);
+    write_to_storage(
+      "scenario_level",
+      scenariolist.level_selector.get_selection()
+    );
     write_to_storage(
       "selected_deck_names",
       JSON.stringify(selected_deck_names)
@@ -1346,6 +1383,14 @@ function init() {
     var selected_deck_names = JSON.parse(
       get_from_storage("selected_deck_names")
     );
+    var scenario_number = parseInt(get_from_storage("scenario_number"));
+    if (!isNaN(scenario_number)) {
+      scenariolist.spinner.value = scenario_number;
+    }
+    var scenario_level = parseInt(get_from_storage("scenario_level"));
+    if (!isNaN(scenario_level)) {
+      scenariolist.level_selector.set_value(scenario_level);
+    }
     decklist.set_selection(selected_deck_names);
     var selected_decks = selected_deck_names.map(function (deck_names) {
       return load_ability_deck(
