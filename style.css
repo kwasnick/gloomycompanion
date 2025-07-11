@@ -195,3 +195,15 @@ li.currentdeck a:hover {
     outline: 0 none;
     background: #555;
 }
+
+.scaleheader {
+    margin-top: 1em;
+    font-weight: bold;
+}
+
+.scalecontrols input[type="button"] {
+    display: inline-block;
+    width: auto;
+    margin: 0 0.3em;
+    padding: 0.6em 1em;
+}

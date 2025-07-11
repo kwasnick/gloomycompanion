@@ -5,8 +5,10 @@ var modifier_deck = null;
 var deck_definitions = load_definition(DECK_DEFINITONS);
 
 // scaling factor for card container width
+var DEFAULT_CARD_SIZE_FACTOR = 1;
 var card_size_factor =
-  parseFloat(localStorage.getItem("card_size_factor")) || 1;
+  parseFloat(localStorage.getItem("card_size_factor")) ||
+  DEFAULT_CARD_SIZE_FACTOR;
 
 var draw_animation_enabled =
   localStorage.getItem("draw_animation_enabled") !== "false";
@@ -423,6 +425,10 @@ function update_card_size() {
     c.style.width = base_width * card_size_factor + "px";
   }
   localStorage.setItem("card_size_factor", card_size_factor);
+  var indicator = document.getElementById("cardsizevalue");
+  if (indicator) {
+    indicator.textContent = Math.round(card_size_factor * 100) + "%";
+  }
   refresh_ui();
 }
 
@@ -1319,6 +1325,8 @@ function init() {
   var applyloadbtn = document.getElementById("applyload");
   var cardsizeplus = document.getElementById("cardsizeplus");
   var cardsizeminus = document.getElementById("cardsizeminus");
+  var cardsizereset = document.getElementById("cardsizereset");
+  var cardsizevalue = document.getElementById("cardsizevalue");
   var showmodifierdeck = document.getElementById("showmodifierdeck");
   var enableanimations = document.getElementById("enableanimations");
 
@@ -1335,6 +1343,10 @@ function init() {
     }
     localStorage.setItem("draw_animation_enabled", draw_animation_enabled);
   };
+
+  if (cardsizevalue) {
+    cardsizevalue.textContent = Math.round(card_size_factor * 100) + "%";
+  }
 
   var decklist = new DeckList();
   var scenariolist = new ScenarioList(SCENARIO_DEFINITIONS);
@@ -1443,6 +1455,11 @@ function init() {
 
   cardsizeminus.onclick = function () {
     card_size_factor = Math.max(0.1, card_size_factor - 0.1);
+    update_card_size();
+  };
+
+  cardsizereset.onclick = function () {
+    card_size_factor = DEFAULT_CARD_SIZE_FACTOR;
     update_card_size();
   };
 
