@@ -1213,6 +1213,51 @@ function create_stat_block(deck) {
     return div;
   }
 
+  function macro_to_icon(macro) {
+    var html = expand_macro(macro);
+    var m = /src='images\/(.*?)\.svg'/.exec(html);
+    return m ? m[1] : null;
+  }
+
+  function icon_attr(icon, normal_val, elite_val) {
+    var has_normal = normal_val !== undefined;
+    var has_elite = elite_val !== undefined;
+    if (!has_normal && !has_elite) {
+      return null;
+    }
+    var div = document.createElement("div");
+    function add_img(container) {
+      var img = document.createElement("img");
+      img.className = "icon";
+      img.src = "images/" + icon + ".svg";
+      container.appendChild(img);
+    }
+    if (has_normal) {
+      add_img(div);
+      if (normal_val !== null && normal_val !== true) {
+        div.appendChild(document.createTextNode(" " + normal_val));
+      }
+      if (has_elite) {
+        if (elite_val !== null && elite_val !== true) {
+          div.appendChild(document.createTextNode(" / "));
+          var span = document.createElement("span");
+          span.className = "elite-color";
+          span.textContent = elite_val;
+          div.appendChild(span);
+        }
+      }
+    } else if (has_elite) {
+      var span = document.createElement("span");
+      span.className = "elite-color";
+      add_img(span);
+      if (elite_val !== null && elite_val !== true) {
+        span.appendChild(document.createTextNode(" " + elite_val));
+      }
+      div.appendChild(span);
+    }
+    return div;
+  }
+
   var block = document.createElement("div");
   block.className = "monster-stat-block";
 
@@ -1237,19 +1282,29 @@ function create_stat_block(deck) {
   var range = icon_stat("range", deck.range, true);
   if (range) grid.appendChild(range);
 
-  block.appendChild(grid);
-
   if (deck.attributes && (deck.attributes[0].length || deck.attributes[1].length)) {
-    var attr = document.createElement("div");
-    var normal = deck.attributes[0].map(function(a){ return a.replace(/%[^%]*%/g, expand_macro); }).join(" ");
-    var elite = deck.attributes[1].map(function(a){ return a.replace(/%[^%]*%/g, expand_macro); }).join(" ");
-    attr.innerHTML = normal;
-    if (elite) {
-      attr.innerHTML += normal ? " / " : "";
-      attr.innerHTML += "<span class='elite-color'>" + elite + "</span>";
-    }
-    block.appendChild(attr);
+    var map = {};
+    [0, 1].forEach(function(idx) {
+      deck.attributes[idx].forEach(function(a) {
+        a.split(":").forEach(function(part) {
+          part = part.trim();
+          if (!part) return;
+          var m = part.match(/(%[^%]+%)(?:\s*(-?\d+))?/);
+          if (!m) return;
+          var icon = macro_to_icon(m[1]);
+          if (!icon) return;
+          if (!map[icon]) map[icon] = [undefined, undefined];
+          map[icon][idx] = m[2] ? parseInt(m[2]) : true;
+        });
+      });
+    });
+    Object.keys(map).forEach(function(icon) {
+      var div = icon_attr(icon, map[icon][0], map[icon][1]);
+      if (div) grid.appendChild(div);
+    });
   }
+
+  block.appendChild(grid);
 
   return block;
 }
