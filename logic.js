@@ -968,7 +968,13 @@ function apply_deck_selection(decks, preserve_existing_deck_state) {
 
   });
   visible_ability_decks.forEach(function (deck) {
-    stats_container.appendChild(create_stat_block(deck));
+    var deckid = deck.get_real_name().replace(/\s+/g, "");
+    var stat_block = create_stat_block(deck);
+    stat_block.id = deckid + "-stats";
+    deck.stat_block = stat_block;
+    if (!deck.deck_space || deck.deck_space.className != "hiddendeck") {
+      stats_container.appendChild(stat_block);
+    }
   });
 
 
@@ -980,6 +986,8 @@ function apply_deck_selection(decks, preserve_existing_deck_state) {
       "contextmenu",
       function (e) {
         this.className = "hiddendeck";
+        var sb = document.getElementById(deckid + "-stats");
+        if (sb) sb.style.display = "none";
         e.preventDefault();
       },
       false
@@ -1003,6 +1011,9 @@ function apply_deck_selection(decks, preserve_existing_deck_state) {
       }
 
       container.removeChild(deck_space);
+      if (this.stat_block && this.stat_block.parentNode) {
+        this.stat_block.parentNode.removeChild(this.stat_block);
+      }
     };
 
     if (deck.is_boss()) {
@@ -1015,7 +1026,10 @@ function apply_deck_selection(decks, preserve_existing_deck_state) {
         get_monster_stats(deck.get_real_name(), deck.level)
       );
     }
-    stats_container.appendChild(create_stat_block(deck));
+    var stat_block = create_stat_block(deck);
+    stat_block.id = deckid + "-stats";
+    deck.stat_block = stat_block;
+    stats_container.appendChild(stat_block);
 
     reshuffle(deck);
     if (preserve_existing_deck_state) {
@@ -1037,9 +1051,12 @@ function apply_deck_selection(decks, preserve_existing_deck_state) {
     label.addEventListener(
       "click",
       function (e) {
-        var d = document.getElementById(this.id.replace("switch-", ""));
-        d.className =
-          d.className == "hiddendeck" ? "card-container" : "hiddendeck";
+        var deckId = this.id.replace("switch-", "");
+        var d = document.getElementById(deckId);
+        var wasHidden = d.className == "hiddendeck";
+        d.className = wasHidden ? "card-container" : "hiddendeck";
+        var sb = document.getElementById(deckId + "-stats");
+        if (sb) sb.style.display = wasHidden ? "" : "none";
       },
       false
     );
