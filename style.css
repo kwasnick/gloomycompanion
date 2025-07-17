@@ -239,10 +239,30 @@ li.currentdeck a:hover {
 }
 
 .monster-stat-block .stats-grid {
-    display: grid;
+    /*
+     * Use flexbox as a fallback for legacy browsers that do not support CSS
+     * grid. The final 'display: grid' definition is kept for modern browsers
+     * where it is supported.  Each child div will occupy half of the available
+     * width when flexbox is used.
+     */
+    display: -webkit-box;        /* old Android/Safari */
+    display: -ms-flexbox;        /* IE10 */
+    display: flex;
+    -ms-flex-wrap: wrap;
+    flex-wrap: wrap;
+    justify-content: center;
+
+    display: grid;               /* modern browsers */
     grid-template-columns: auto auto;
     gap: 0.2em 0.5em;
     justify-items: center;
+}
+
+/* When using the flexbox fallback each stat cell should take half the width */
+.monster-stat-block .stats-grid > div {
+    -webkit-box-flex: 0;
+    -ms-flex: 0 0 50%;
+    flex: 0 0 50%;
 }
 
 .monster-stat-block {
