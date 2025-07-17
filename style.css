@@ -216,6 +216,33 @@ li.currentdeck a:hover {
     margin: 0.5em 0;
     color: white;
     font-family: 'PirataOne', sans-serif;
+    cursor: pointer;
+}
+
+#monster-stats-container.collapsed .monster-stat-block {
+    display: none;
+}
+
+#monster-stats-container .monster-stats-placeholder {
+    display: none;
+    width: 100%;
+    background: #222;
+    border-radius: 4px;
+    padding: 0.3em 0.6em;
+    margin: 0.3em;
+    text-align: center;
+    font-size: 1.2rem;
+}
+
+#monster-stats-container.collapsed .monster-stats-placeholder {
+    display: block;
+}
+
+.monster-stat-block .stats-grid {
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 0.2em 0.5em;
+    justify-items: center;
 }
 
 .monster-stat-block {

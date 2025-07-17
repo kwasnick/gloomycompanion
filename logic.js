@@ -951,6 +951,16 @@ function apply_deck_selection(decks, preserve_existing_deck_state) {
   var stats_container = document.createElement("div");
   stats_container.id = "monster-stats-container";
   stats_container.className = "monster-stats-container";
+
+  var collapse_placeholder = document.createElement("div");
+  collapse_placeholder.className = "monster-stats-placeholder";
+  collapse_placeholder.textContent = "Monster Stats";
+  stats_container.appendChild(collapse_placeholder);
+
+  stats_container.addEventListener("click", function () {
+    this.classList.toggle("collapsed");
+  });
+
   container.appendChild(stats_container);
 
   decks_to_remove.forEach(function (deck) {
@@ -1171,7 +1181,7 @@ function add_modifier_deck(container, deck, preserve_discards) {
 
 function create_stat_block(deck) {
   function stat_line(macro, values) {
-    if (macro === "%range%" && values[0] === 0 && values[1] === 0) {
+    if (macro === "%range%" && values[0] === 0) {
       return null;
     }
     var div = document.createElement("div");
@@ -1183,6 +1193,26 @@ function create_stat_block(deck) {
     return div;
   }
 
+  function icon_stat(icon, values, skip_zero) {
+    if (skip_zero && values[0] === 0) {
+      return null;
+    }
+    var div = document.createElement("div");
+    var img = document.createElement("img");
+    img.className = "icon";
+    img.src = "images/" + icon + ".svg";
+    div.appendChild(img);
+    div.appendChild(document.createTextNode(" " + values[0]));
+    if (values.length > 1 && values[1] > 0) {
+      div.appendChild(document.createTextNode(" / "));
+      var span = document.createElement("span");
+      span.className = "elite-color";
+      span.textContent = values[1];
+      div.appendChild(span);
+    }
+    return div;
+  }
+
   var block = document.createElement("div");
   block.className = "monster-stat-block";
 
@@ -1190,19 +1220,24 @@ function create_stat_block(deck) {
   name.textContent = deck.get_real_name();
   block.appendChild(name);
 
+  var grid = document.createElement("div");
+  grid.className = "stats-grid";
+
   var hp = document.createElement("div");
   hp.innerHTML = "HP " + deck.health[0];
   if (deck.health.length > 1 && deck.health[1] > 0) {
     hp.innerHTML += " / <span class='elite-color'>" + deck.health[1] + "</span>";
   }
-  block.appendChild(hp);
+  grid.appendChild(hp);
 
-  var move = stat_line("%move%", deck.move);
-  if (move) block.appendChild(move);
-  var attack = stat_line("%attack%", deck.attack);
-  if (attack) block.appendChild(attack);
-  var range = stat_line("%range%", deck.range);
-  if (range) block.appendChild(range);
+  var move = icon_stat("move", deck.move);
+  if (move) grid.appendChild(move);
+  var attack = icon_stat("attack", deck.attack);
+  if (attack) grid.appendChild(attack);
+  var range = icon_stat("range", deck.range, true);
+  if (range) grid.appendChild(range);
+
+  block.appendChild(grid);
 
   if (deck.attributes && (deck.attributes[0].length || deck.attributes[1].length)) {
     var attr = document.createElement("div");
