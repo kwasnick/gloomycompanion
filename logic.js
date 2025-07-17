@@ -1327,6 +1327,21 @@ function create_stat_block(deck) {
 
   block.appendChild(grid);
 
+  if (deck.immunities && deck.immunities.length) {
+    var imm = document.createElement("div");
+    imm.className = "small";
+    imm.innerHTML =
+      "Immunities: " + deck.immunities.map(expand_macro).join(", ");
+    block.appendChild(imm);
+  }
+
+  if (deck.notes && deck.notes.trim() !== "") {
+    var note = document.createElement("div");
+    note.className = "small";
+    note.innerHTML = "Notes: " + deck.notes;
+    block.appendChild(note);
+  }
+
   return block;
 }
 function LevelSelector(text, inline) {
