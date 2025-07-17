@@ -207,3 +207,26 @@ li.currentdeck a:hover {
     margin: 0 0.3em;
     padding: 0.6em 1em;
 }
+/* Monster stats row */
+#monster-stats-container {
+    flex-basis: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 0.5em 0;
+    color: white;
+    font-family: 'PirataOne', sans-serif;
+}
+
+.monster-stat-block {
+    background: #222;
+    border-radius: 4px;
+    padding: 0.3em 0.6em;
+    margin: 0.3em;
+    text-align: center;
+    font-size: 1.2rem;
+}
+
+.monster-stat-block .elite-color {
+    color: gold;
+}
