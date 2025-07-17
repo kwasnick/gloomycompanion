@@ -1181,12 +1181,17 @@ function add_modifier_deck(container, deck, preserve_discards) {
   draw_all_button.title = "Draw all monster cards";
 
   deck_column.appendChild(deck_space);
-  deck_column.appendChild(draw_all_button);
-  deck_column.appendChild(draw_two_button);
-  deck_column.appendChild(end_round_div);
 
-  modifier_container.appendChild(deck_column);
+  var controls_column = document.createElement("div");
+  controls_column.className = "modifier-deck-column-3";
+
+  controls_column.appendChild(draw_all_button);
+  controls_column.appendChild(draw_two_button);
+  controls_column.appendChild(end_round_div);
+
   modifier_container.appendChild(button_div);
+  modifier_container.appendChild(deck_column);
+  modifier_container.appendChild(controls_column);
 
   container.appendChild(modifier_container);
 

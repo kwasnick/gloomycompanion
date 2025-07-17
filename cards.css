@@ -49,6 +49,25 @@
     height:                     100%;
 }
 
+.modifier-deck-column-3
+{
+    float:                      right;
+    margin:                     0;
+    padding:                    0;
+    width:                      20%;
+    height:                     100%;
+
+    display:                    -webkit-flex;
+    -webkit-flex-direction:     column;
+    -webkit-flex-wrap:          wrap;
+    justify-content:            center;
+
+    display:                    flex;
+    flex-direction:             column;
+    flex-wrap:                  wrap;
+    justify-content:            center;
+}
+
 .counter-icon
 {
     position:                   relative;
@@ -116,12 +135,9 @@
     background-size:            50%;
     cursor:                     pointer;
 
-    position:                   absolute;
-    right:                      18%;
-    bottom:                     10px;
-    width:                      20%;
-    height:                     20%;
-    margin: 0;
+    width:                      100%;
+    height:                     22%;
+    margin:                     0.3em 0;
 }
 
 .shuffle.not-required
@@ -165,11 +181,9 @@
 
 .draw-two.button
 {
-    position:                   absolute;
-    right:                      42%;
-    bottom:                     10px;
-    width:                      20%;
-    height:                     20%;
+    width:                      100%;
+    height:                     22%;
+    margin:                     0.3em 0;
     background-repeat:          no-repeat;
     background-position:        center center;
     background-size:            50%;
@@ -179,11 +193,9 @@
 
 .draw-all.button
 {
-    position:                   absolute;
-    right:                      66%;
-    bottom:                     10px;
-    width:                      20%;
-    height:                     20%;
+    width:                      100%;
+    height:                     22%;
+    margin:                     0.3em 0;
     background-repeat:          no-repeat;
     background-position:        center center;
     background-size:            50%;
