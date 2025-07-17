@@ -944,9 +944,23 @@ function apply_deck_selection(decks, preserve_existing_deck_state) {
   }
   write_to_storage("modifier_deck", JSON.stringify(modifier_deck));
 
+  var old_stats = document.getElementById("monster-stats-container");
+  if (old_stats) {
+    container.removeChild(old_stats);
+  }
+  var stats_container = document.createElement("div");
+  stats_container.id = "monster-stats-container";
+  stats_container.className = "monster-stats-container";
+  container.appendChild(stats_container);
+
   decks_to_remove.forEach(function (deck) {
     deck.discard_deck();
+
   });
+  visible_ability_decks.forEach(function (deck) {
+    stats_container.appendChild(create_stat_block(deck));
+  });
+
 
   decks_to_add.forEach(function (deck) {
     var deckid = deck.get_real_name().replace(/\s+/g, "");
@@ -991,6 +1005,8 @@ function apply_deck_selection(decks, preserve_existing_deck_state) {
         get_monster_stats(deck.get_real_name(), deck.level)
       );
     }
+    stats_container.appendChild(create_stat_block(deck));
+
     reshuffle(deck);
     if (preserve_existing_deck_state) {
       deck.draw_top_discard();
@@ -1152,6 +1168,56 @@ function add_modifier_deck(container, deck, preserve_discards) {
   deck_space.onclick = draw_modifier_card.bind(null, deck);
 }
 
+
+function create_stat_block(deck) {
+  function stat_line(macro, values) {
+    if (macro === "%range%" && values[0] === 0 && values[1] === 0) {
+      return null;
+    }
+    var div = document.createElement("div");
+    var html = expand_macro(macro) + " " + values[0];
+    if (values.length > 1 && values[1] > 0) {
+      html += " / <span class='elite-color'>" + values[1] + "</span>";
+    }
+    div.innerHTML = html;
+    return div;
+  }
+
+  var block = document.createElement("div");
+  block.className = "monster-stat-block";
+
+  var name = document.createElement("div");
+  name.textContent = deck.get_real_name();
+  block.appendChild(name);
+
+  var hp = document.createElement("div");
+  hp.innerHTML = "HP " + deck.health[0];
+  if (deck.health.length > 1 && deck.health[1] > 0) {
+    hp.innerHTML += " / <span class='elite-color'>" + deck.health[1] + "</span>";
+  }
+  block.appendChild(hp);
+
+  var move = stat_line("%move%", deck.move);
+  if (move) block.appendChild(move);
+  var attack = stat_line("%attack%", deck.attack);
+  if (attack) block.appendChild(attack);
+  var range = stat_line("%range%", deck.range);
+  if (range) block.appendChild(range);
+
+  if (deck.attributes && (deck.attributes[0].length || deck.attributes[1].length)) {
+    var attr = document.createElement("div");
+    var normal = deck.attributes[0].map(function(a){ return a.replace(/%[^%]*%/g, expand_macro); }).join(" ");
+    var elite = deck.attributes[1].map(function(a){ return a.replace(/%[^%]*%/g, expand_macro); }).join(" ");
+    attr.innerHTML = normal;
+    if (elite) {
+      attr.innerHTML += normal ? " / " : "";
+      attr.innerHTML += "<span class='elite-color'>" + elite + "</span>";
+    }
+    block.appendChild(attr);
+  }
+
+  return block;
+}
 function LevelSelector(text, inline) {
   var max_level = 7;
   var level = {};
