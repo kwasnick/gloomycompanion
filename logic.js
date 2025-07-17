@@ -1304,6 +1304,10 @@ function create_stat_block(deck) {
     });
   }
 
+  if (grid.childElementCount > 4) {
+    grid.classList.add("three-cols");
+  }
+
   block.appendChild(grid);
 
   return block;
