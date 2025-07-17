@@ -211,7 +211,7 @@ li.currentdeck a:hover {
 #monster-stats-container {
     flex-basis: 100%;
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: center;
     margin: 0.5em 0;
     color: white;
@@ -287,8 +287,15 @@ li.currentdeck a:hover {
     margin: 0.3em;
     text-align: center;
     font-size: 1.2rem;
+    flex: 1 1 0;
+    min-width: 0;
 }
 
 .monster-stat-block .elite-color {
     color: gold;
+}
+
+.monster-stat-block > div:first-child {
+    white-space: normal;
+    word-break: break-word;
 }
