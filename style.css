@@ -238,6 +238,19 @@ li.currentdeck a:hover {
     display: block;
 }
 
+/* Draw all monster cards row */
+#draw-all-monsters {
+    flex-basis: 100%;
+    background: #444;
+    border-radius: 4px;
+    padding: 0.3em 0.6em;
+    margin: 0.5em 0;
+    text-align: center;
+    color: white;
+    font-family: 'PirataOne', sans-serif;
+    cursor: pointer;
+}
+
 .monster-stat-block .stats-grid {
     /*
      * Use flexbox as a fallback for legacy browsers that do not support CSS
