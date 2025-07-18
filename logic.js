@@ -938,7 +938,6 @@ function apply_deck_selection(decks, preserve_existing_deck_state) {
       );
     }
   } else if (!preserve_existing_deck_state) {
-    container.removeChild(document.getElementById("modifier-container"));
     init_modifier_deck();
     add_modifier_deck(container, modifier_deck, preserve_existing_deck_state);
   }
@@ -1084,38 +1083,21 @@ function count_type(type, deck) {
 }
 
 function add_modifier_deck(container, deck, preserve_discards) {
-  function create_counter(card_type, increment_func, decrement_func, title) {
-    function create_button(class_name, text, func, text_element) {
-      var button = document.createElement("div");
-      button.className = class_name + " button";
-      button.innerText = text;
+  function init_counter(element, card_type, increment_func, decrement_func) {
+    var text_element = element.querySelector(".icon-text");
+    var inc_btn = element.querySelector(".increment.button");
+    var dec_btn = element.querySelector(".decrement.button");
 
-      button.onclick = function () {
-        text_element.innerText = func(card_type);
+    if (inc_btn) {
+      inc_btn.onclick = function () {
+        text_element.innerText = increment_func(card_type);
       };
-
-      return button;
     }
-
-    var widget_container = document.createElement("div");
-    widget_container.className = "counter-icon";
-    widget_container.title = title;
-
-    var background = document.createElement("div");
-    background.className = "background " + card_type;
-    widget_container.appendChild(background);
-
-    var text_element = document.createElement("div");
-    text_element.className = "icon-text";
-    text_element.innerText = "0";
-
-    widget_container.appendChild(
-      create_button("decrement", "-", decrement_func, text_element)
-    );
-    widget_container.appendChild(text_element);
-    widget_container.appendChild(
-      create_button("increment", "+", increment_func, text_element)
-    );
+    if (dec_btn) {
+      dec_btn.onclick = function () {
+        text_element.innerText = decrement_func(card_type);
+      };
+    }
 
     document.body.addEventListener(
       EVENT_NAMES.MODIFIER_CARD_DRAWN,
@@ -1125,8 +1107,6 @@ function add_modifier_deck(container, deck, preserve_discards) {
         }
       }
     );
-
-    return widget_container;
   }
 
   function indicate_shuffle_required(e) {
@@ -1139,54 +1119,36 @@ function add_modifier_deck(container, deck, preserve_discards) {
     }
   }
 
-  var modifier_container = document.createElement("div");
-  modifier_container.className = "card-container";
-  modifier_container.id = "modifier-container";
+  var modifier_container = document.getElementById("modifier-container");
+  var deck_column = modifier_container.querySelector(".modifier-deck-column-2");
+  var button_div = modifier_container.querySelector(".modifier-deck-column-1");
 
-  var button_div = document.createElement("div");
-  button_div.className = "modifier-deck-column-1";
+  var deck_space = document.getElementById("modifier-deck-space");
+  var draw_two_button = modifier_container.querySelector(".button.draw-two");
+  var draw_all_button = modifier_container.querySelector(".button.draw-all");
+  var end_round_div = document.getElementById("end-round");
 
-  button_div.appendChild(
-    create_counter("bless", deck.add_card, deck.remove_card, "Bless cards")
+  init_counter(
+    document.getElementById("bless-counter"),
+    "bless",
+    deck.add_card,
+    deck.remove_card
   );
-  button_div.appendChild(
-    create_counter("curse", deck.add_card, deck.remove_card, "Curse cards")
+  init_counter(
+    document.getElementById("curse-counter"),
+    "curse",
+    deck.add_card,
+    deck.remove_card
   );
 
-  var end_round_div = document.createElement("div");
-  end_round_div.className = "counter-icon shuffle not-required";
   end_round_div.onclick = end_round;
-  end_round_div.title = "Click to end round and shuffle";
+  draw_two_button.onclick = double_draw.bind(null, modifier_deck);
+  draw_all_button.onclick = draw_all_monster_cards;
 
   document.body.addEventListener(
     EVENT_NAMES.MODIFIER_DECK_SHUFFLE_REQUIRED,
     indicate_shuffle_required
   );
-
-  var deck_column = document.createElement("div");
-  deck_column.className = "modifier-deck-column-2";
-
-  var deck_space = document.createElement("div");
-  deck_space.className = "card-container modifier";
-  deck_space.title = "Click to draw one card";
-
-  var draw_two_button = document.createElement("div");
-  draw_two_button.className = "button draw-two";
-  draw_two_button.onclick = double_draw.bind(null, modifier_deck);
-  draw_two_button.title = "Click to draw two cards";
-
-  var draw_all_button = document.createElement("div");
-  draw_all_button.className = "button draw-all";
-  draw_all_button.onclick = draw_all_monster_cards;
-  draw_all_button.title = "Draw all monster cards";
-
-  deck_column.appendChild(deck_space);
-  deck_column.appendChild(draw_all_button);
-  deck_column.appendChild(draw_two_button);
-  deck_column.appendChild(end_round_div);
-
-  modifier_container.appendChild(deck_column);
-  modifier_container.appendChild(button_div);
 
   container.appendChild(modifier_container);
 
