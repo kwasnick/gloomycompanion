@@ -30,6 +30,7 @@
     margin:                     8px;
 }
 
+
 .modifier-deck-column-1,
 .modifier-deck-column-2,
 .modifier-deck-column-3
@@ -73,8 +74,9 @@
 .counter-icon
 {
     position:                   relative;
-    height:                     22%;
-    margin:                     30% 0;
+    height:                     auto;
+    margin:                     1rem 0;
+    min-width: 70px;
 
     list-style:                 none;
 
@@ -212,9 +214,17 @@
 {
     width:                      100%;
     float:                      none;
+    min-height:200px;
 }
 
-.card-container::before
+.card-container.modifier::before
+{
+    content:                    "";
+    visibility:                 hidden;
+    display:                    inline-block;
+}
+
+.card-container.monster::before
 {
     content:                    "";
     visibility:                 hidden;
