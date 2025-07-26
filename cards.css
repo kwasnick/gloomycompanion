@@ -30,23 +30,44 @@
     margin:                     8px;
 }
 
+.modifier-deck-column-1,
+.modifier-deck-column-2,
+.modifier-deck-column-3
+{
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}
+
+#modifier-container
+{
+    display: flex;
+    align-items: flex-start;
+}
+
 .modifier-deck-column-1
 {
-    float:                      left;
-    margin:                     0;
-    padding:                    0;
-    width:                      20%;
-    height:                     100%;
+    width: 15%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .modifier-deck-column-2
 {
-    float:                      right;
-    margin:                     0;
-    padding:                    0;
-    width:                      100%;
-    margin-left:                -30%;
-    height:                     100%;
+    width: 70%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.modifier-deck-column-3
+{
+    width: 15%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
 }
 
 .counter-icon
@@ -116,12 +137,10 @@
     background-size:            50%;
     cursor:                     pointer;
 
-    position:                   absolute;
-    right:                      18%;
-    bottom:                     10px;
-    width:                      20%;
+    position:                   static;
+    width:                      100%;
     height:                     20%;
-    margin: 0;
+    margin: 0.3em 0;
 }
 
 .shuffle.not-required
@@ -165,36 +184,34 @@
 
 .draw-two.button
 {
-    position:                   absolute;
-    right:                      42%;
-    bottom:                     10px;
-    width:                      20%;
+    position:                   static;
+    width:                      100%;
     height:                     20%;
     background-repeat:          no-repeat;
     background-position:        center center;
     background-size:            50%;
     background-image:           url(images/draw-two.svg);
     cursor:                     pointer;
+    margin: 0.3em 0;
 }
 
 .draw-all.button
 {
-    position:                   absolute;
-    right:                      66%;
-    bottom:                     10px;
-    width:                      20%;
+    position:                   static;
+    width:                      100%;
     height:                     20%;
     background-repeat:          no-repeat;
     background-position:        center center;
     background-size:            50%;
     background-image:           url(images/draw-all.svg);
     cursor:                     pointer;
+    margin: 0.3em 0;
 }
 
 .card-container.modifier
 {
-    width:                      70%;
-    float:                      right;
+    width:                      100%;
+    float:                      none;
 }
 
 .card-container::before
