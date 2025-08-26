@@ -201,21 +201,11 @@ function special_to_lines(s, special1, special2)
 
 function expand_string(s, attack, move, range)
 {
-    var re = new RegExp("%(attack|move|range)% (\\+|-)(\\d*)", "g");
-    var found;
-    while (found = re.exec(s))
+    var stats = { "attack": attack, "move": move, "range": range };
+    s = s.replace(/%(attack|move|range)% (\+|-)(\d*)/g, function(match, stat)
     {
-        if (found[1] === "attack")
-        {
-            s = s.replace(found[0], expand_stat(found[0], "attack", attack));
-        } else if  (found[1] === "move")
-        {
-            s = s.replace(found[0], expand_stat(found[0], "move", move));
-        } else if (found[1] === "range")
-        {
-            s = s.replace(found[0], expand_stat(found[0], "range", range));
-        }
-    }
+        return expand_stat(match, stat, stats[stat]);
+    });
 
     return s.replace(/%[^%]*%/gi, expand_macro);
 }
