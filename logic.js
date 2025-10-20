@@ -1125,7 +1125,7 @@ function add_modifier_deck(container, deck, preserve_discards) {
 
   var deck_space = document.getElementById("modifier-deck-space");
   var draw_two_button = modifier_container.querySelector(".button.draw-two");
-  var draw_all_button = modifier_container.querySelector(".button.draw-all");
+  var draw_all_button = document.getElementById("draw-all-monsters");
   var end_round_div = document.getElementById("end-round");
 
   init_counter(
