@@ -964,7 +964,6 @@ function apply_deck_selection(decks, preserve_existing_deck_state) {
 
   decks_to_remove.forEach(function (deck) {
     deck.discard_deck();
-
   });
   visible_ability_decks.forEach(function (deck) {
     var deckid = deck.get_real_name().replace(/\s+/g, "");
@@ -975,7 +974,6 @@ function apply_deck_selection(decks, preserve_existing_deck_state) {
       stats_container.appendChild(stat_block);
     }
   });
-
 
   decks_to_add.forEach(function (deck) {
     var deckid = deck.get_real_name().replace(/\s+/g, "");
@@ -992,6 +990,7 @@ function apply_deck_selection(decks, preserve_existing_deck_state) {
       false
     );
     deck_space.className = "card-container";
+    deck_space.classList.add("monster");
     deck_space.title = "Click to draw enemy ability";
 
     container.appendChild(deck_space);
@@ -1157,7 +1156,6 @@ function add_modifier_deck(container, deck, preserve_discards) {
   deck_space.onclick = draw_modifier_card.bind(null, deck);
 }
 
-
 function create_stat_block(deck) {
   function stat_line(macro, values) {
     if (macro === "%range%" && values[0] === 0) {
@@ -1250,7 +1248,8 @@ function create_stat_block(deck) {
   var hp = document.createElement("div");
   hp.innerHTML = "HP " + deck.health[0];
   if (deck.health.length > 1 && deck.health[1] > 0) {
-    hp.innerHTML += " / <span class='elite-color'>" + deck.health[1] + "</span>";
+    hp.innerHTML +=
+      " / <span class='elite-color'>" + deck.health[1] + "</span>";
   }
   grid.appendChild(hp);
 
@@ -1261,11 +1260,14 @@ function create_stat_block(deck) {
   var range = icon_stat("range", deck.range, true);
   if (range) grid.appendChild(range);
 
-  if (deck.attributes && (deck.attributes[0].length || deck.attributes[1].length)) {
+  if (
+    deck.attributes &&
+    (deck.attributes[0].length || deck.attributes[1].length)
+  ) {
     var map = {};
-    [0, 1].forEach(function(idx) {
-      deck.attributes[idx].forEach(function(a) {
-        a.split(":").forEach(function(part) {
+    [0, 1].forEach(function (idx) {
+      deck.attributes[idx].forEach(function (a) {
+        a.split(":").forEach(function (part) {
           part = part.trim();
           if (!part) return;
           var m = part.match(/(%[^%]+%)(?:\s*(-?\d+))?/);
@@ -1277,7 +1279,7 @@ function create_stat_block(deck) {
         });
       });
     });
-    Object.keys(map).forEach(function(icon) {
+    Object.keys(map).forEach(function (icon) {
       var div = icon_attr(icon, map[icon][0], map[icon][1]);
       if (div) grid.appendChild(div);
     });
