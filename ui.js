@@ -7,7 +7,7 @@ var settings_pages;
 function activate_tab(tab) {
   Object.keys(settings_tabs).forEach(function (key) {
     toggle_class(settings_tabs[key], "inactive", key !== tab);
-    toggle_class(settings_pages[key], "inactive", key !== tab);
+    settings_pages[key].hidden = key !== tab;
   });
   active_settings_tab = tab;
 }
@@ -18,6 +18,11 @@ function show_settingspane(show) {
 }
 
 function init_ui() {
+  function close_settings() {
+    show_settingspane(false);
+    save_app_state();
+  }
+
   settings_tabs = {
     scenarios: document.getElementById("scenariotab"),
     decks: document.getElementById("deckstab"),
@@ -39,10 +44,8 @@ function init_ui() {
     show_settingspane(true);
     save_app_state();
   };
-  cancelarea.onclick = function () {
-    show_settingspane(false);
-    save_app_state();
-  };
+  cancelarea.onclick = close_settings;
+  document.getElementById("close-settings").onclick = close_settings;
   activate_tab("scenarios");
 }
 
@@ -61,6 +64,21 @@ function get_settings_fields(decklist, scenariolist) {
   return fields;
 }
 
+function update_tableau_visibility(decks, show_modifier) {
+  var show_stats = decks.some(function (deck) {
+    return !deck.hidden;
+  });
+  document.getElementById("monster-stats-container").hidden = !show_stats;
+
+  var empty_tableau = document.getElementById("empty-tableau");
+  empty_tableau.hidden = show_stats || show_modifier;
+  if (!empty_tableau.hidden) {
+    empty_tableau.textContent = decks.length > 0
+      ? "All monster decks are hidden. Select a monster name to show its deck."
+      : "Choose a scenario or decks in Settings.";
+  }
+}
+
 function get_view_state(fields) {
   var values = {};
   Object.keys(fields).forEach(function (key) {
@@ -75,7 +93,7 @@ function get_view_state(fields) {
 }
 
 function restore_view_state(view, fields) {
-  require_saved_state(view && Object.hasOwn(settings_tabs, view.tab) &&
+  require_saved_state(view && has_own(settings_tabs, view.tab) &&
     typeof view.settings_open === "boolean" && view.fields);
   var keys = Object.keys(fields);
   keys.forEach(function (key) {

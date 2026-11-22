@@ -46,6 +46,8 @@ input[type="number"] {
 
 #tableau
 {
+    --ability-card-scale: 1;
+    font-size:          26.6px;
     display:            -webkit-box;
     -webkit-box-orient: horizontal;
     -webkit-box-pack:   center;
@@ -60,6 +62,13 @@ input[type="number"] {
     justify-content:    space-around;
 }
 
+#empty-tableau {
+    margin: 3.5rem 1rem 1rem;
+    color: white;
+    font-size: 1rem;
+    text-align: center;
+}
+
 @media only screen and (max-height: 480px) and (orientation: portrait) {
     #tableau {
         -webkit-box-orient: vertical;
@@ -71,7 +80,7 @@ ul.tabcontainer
     display:            -webkit-box;
     -webkit-box-orient: horizontal;
     display:            flex;
-    padding:            16px 16px 0 16px;
+    padding:            16px 3rem 0 16px;
     margin: 0 0 1em;
     list-style:         none;
     background: #f0f5f9;
@@ -101,16 +110,6 @@ ul.tabcontainer .inactive
     margin-bottom:      4em;
 }
 
-.tabbody.inactive
-{
-    height:             0;
-    margin-top:         0;
-    margin-bottom:      0;
-    padding-top:        0;
-    padding-bottom:     0;
-    overflow:           hidden;
-}
-
 .selectionlist
 {
     list-style:         none;
@@ -136,8 +135,7 @@ ul.tabcontainer .inactive
     overflow-y:         auto;
     background:         white;
     box-shadow:         1em 0 4em rgba(0, 0, 0, 0.5);
-    -webkit-transition: left 0.25s ease-in-out;
-    transition:         left 0.25s ease-in-out;
+    transition:         left 0.25s ease-in-out, visibility 0s;
     z-index:            1;
 }
 
@@ -145,11 +143,22 @@ ul.tabcontainer .inactive
 {
     left:               -110%; /* fallback */
     left:               calc(-100% - 2em);
+    visibility:         hidden;
+    transition-delay:   0s, 0.25s;
 }
 
-.hiddendeck
+#close-settings
 {
-    display: none;
+    position:           absolute;
+    top:                0;
+    right:              0;
+    width:              3rem;
+    height:             3.5rem;
+    border:             0;
+    background:         transparent;
+    color:              #222;
+    font-size:          1.75rem;
+    cursor:             pointer;
 }
 
 #currentdecks {
@@ -222,13 +231,17 @@ li.currentdeck a:hover {
 /* Monster stats row */
 #monster-stats-container {
     flex-basis: 100%;
-    display: flex;
+    min-width: 0;
+    overflow-x: auto;
     flex-wrap: nowrap;
-    justify-content: center;
     margin: 0.5em 0;
     color: white;
     font-family: 'PirataOne', sans-serif;
     cursor: pointer;
+}
+
+#monster-stats-container:not([hidden]) {
+    display: flex;
 }
 
 #monster-stats-container.collapsed .monster-stat-block {
@@ -290,6 +303,7 @@ li.currentdeck a:hover {
     -webkit-box-flex: 0;
     -ms-flex: 0 0 50%;
     flex: 0 0 50%;
+    white-space: nowrap;
 }
 
 .monster-stat-block {
@@ -300,7 +314,7 @@ li.currentdeck a:hover {
     text-align: center;
     font-size: 1.2rem;
     flex: 1 1 0;
-    min-width: 0;
+    min-width: min-content;
 }
 
 .monster-stat-block .elite-color {

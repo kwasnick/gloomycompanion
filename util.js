@@ -23,6 +23,11 @@ function toggle_class(element, class_name, enable_class)
     }
 }
 
+function has_own(object, key)
+{
+    return Object.prototype.hasOwnProperty.call(object, key);
+}
+
 function remove_child(myNode)
 {
     while (myNode.firstChild)

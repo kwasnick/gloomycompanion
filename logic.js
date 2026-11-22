@@ -291,24 +291,12 @@ function update_card_size() {
   refresh_ui();
 }
 
-// This should be dynamic dependant on lines per card
 function refresh_ui() {
-  var actual_card_height = 296;
-  var base_font_size = 26.6;
-
   var tableau = document.getElementById("tableau");
-  var cards = tableau.getElementsByClassName("card");
-  for (var i = 0; i < cards.length; i++) {
-    if (cards[i].classList.contains("ability")) {
-      var height = cards[i].getBoundingClientRect().height;
-      if (height === 0) {
-        continue;
-      }
-      var scale = height / actual_card_height;
-      var scaled_font_size = base_font_size * scale;
-      tableau.style.fontSize = scaled_font_size + "px";
-      break;
-    }
+  var card = tableau.querySelector(".card-container:not([hidden]) .card.ability");
+  if (card) {
+    // Measure the layout height without the shuffle animation's transform.
+    tableau.style.setProperty("--ability-card-scale", card.offsetHeight / 296);
   }
 }
 
@@ -560,7 +548,7 @@ function create_modifier_deck(saved) {
       remaining.set(definition.type, (remaining.get(definition.type) || 0) + 1);
     });
     function restore_card(type) {
-      require_saved_state(typeof type === "string" && Object.hasOwn(MODIFIER_CARDS, type.toUpperCase()));
+      require_saved_state(typeof type === "string" && has_own(MODIFIER_CARDS, type.toUpperCase()));
       var definition = MODIFIER_CARDS[type.toUpperCase()];
       require_saved_state(definition.type === type);
       if (remaining.has(type)) {
@@ -687,8 +675,15 @@ function get_boss_stats(name, level) {
 
 function set_deck_visibility(deck, hidden) {
   deck.hidden = hidden;
-  toggle_class(deck.deck_space, "hiddendeck", hidden);
+  deck.deck_space.hidden = hidden;
   deck.stat_block.hidden = hidden;
+}
+
+function change_deck_visibility(deck, hidden) {
+  set_deck_visibility(deck, hidden);
+  update_tableau_visibility(visible_ability_decks, active_game.show_modifier_deck);
+  refresh_ui();
+  save_app_state();
 }
 
 function show_game(decks, modifier, options) {
@@ -736,8 +731,7 @@ function show_game(decks, modifier, options) {
     space.onclick = draw_ability_card.bind(null, deck);
     space.oncontextmenu = function (event) {
       event.preventDefault();
-      set_deck_visibility(deck, true);
-      save_app_state();
+      change_deck_visibility(deck, true);
     };
     render_deck_piles(deck);
     place_deck(deck, space);
@@ -755,15 +749,15 @@ function show_game(decks, modifier, options) {
     label.href = "#switch-" + deck_id;
     label.innerText = deck.name;
     label.title = "Click to show/hide deck";
-    label.onclick = function () {
-      set_deck_visibility(deck, !deck.hidden);
-      refresh_ui();
-      save_app_state();
+    label.onclick = function (event) {
+      event.preventDefault();
+      change_deck_visibility(deck, !deck.hidden);
     };
     item.appendChild(label);
     current_decks.appendChild(item);
   });
 
+  update_tableau_visibility(decks, options.show_modifier_deck);
   update_card_size();
 }
 
@@ -1181,10 +1175,10 @@ function ScenarioList(scenarios) {
 }
 
 function get_ability_class(name) {
-  if (Object.hasOwn(DECKS, name)) {
+  if (has_own(DECKS, name)) {
     return DECKS[name].class;
   }
-  if (name.startsWith("Boss: ") && Object.hasOwn(MONSTER_STATS.bosses, name.slice(6))) {
+  if (name.startsWith("Boss: ") && has_own(MONSTER_STATS.bosses, name.slice(6))) {
     return DECKS.Boss.class;
   }
 }

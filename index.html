@@ -31,6 +31,7 @@
           <li id="scenariotab">Scenario</li>
           <li id="deckstab">Decks</li>
         </ul>
+        <button id="close-settings" type="button" aria-label="Close settings">&times;</button>
         <div id="scenariospage" class="tabbody">
           <input id="showmodifierdeck" type="checkbox" checked /><label
             for="showmodifierdeck"
@@ -56,7 +57,7 @@
             <input id="cardsizeplus" type="button" value="+" />
           </p>
         </div>
-        <div id="deckspage" class="tabbody">
+        <div id="deckspage" class="tabbody" hidden>
           <input
             id="showmodifierdeck-deckspage"
             type="checkbox"
@@ -80,8 +81,8 @@
         <ul id="currentdeckslist" class="currentdeckslist"></ul>
       </div>
     </div>
-    <div id="tableau" style="font-size: 26.6px">
-      <!-- base font size for all cards. Placed here to make it adjustable from javascript -->
+    <div id="tableau">
+      <p id="empty-tableau" role="status">Choose a scenario or decks in Settings.</p>
       <div id="modifier-container" hidden>
         <div class="modifier-counters">
           <div id="bless-counter" class="counter-icon" title="Bless cards">
