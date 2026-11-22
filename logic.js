@@ -279,10 +279,7 @@ function update_card_size() {
   var base_width = 453; // default width in CSS
   for (var i = 0; i < containers.length; i++) {
     var c = containers[i];
-    if (
-      c.className.indexOf("modifier") !== -1 ||
-      c.id === "modifier-container"
-    ) {
+    if (c.classList.contains("modifier")) {
       continue;
     }
     c.style.width = base_width * card_size_factor + "px";
@@ -823,7 +820,7 @@ function mount_modifier_deck(deck, show) {
   }
 
   var container = document.getElementById("modifier-container");
-  container.style.display = show ? "block" : "none";
+  container.hidden = !show;
   var space = document.getElementById("modifier-deck-space");
   space.classList.remove("shuffle-animation");
   remove_child(space);

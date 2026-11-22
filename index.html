@@ -82,14 +82,8 @@
     </div>
     <div id="tableau" style="font-size: 26.6px">
       <!-- base font size for all cards. Placed here to make it adjustable from javascript -->
-      <div id="modifier-container" class="card-container">
-        <div class="modifier-deck-column-2">
-          <div id="modifier-deck-space" class="card-container modifier" title="Click to draw one card"></div>
-          <div class="button draw-all" title="Draw all monster cards"></div>
-          <div class="button draw-two" title="Click to draw two cards"></div>
-          <div id="end-round" class="counter-icon shuffle not-required" title="Click to end round and shuffle"></div>
-        </div>
-        <div class="modifier-deck-column-1">
+      <div id="modifier-container" hidden>
+        <div class="modifier-counters">
           <div id="bless-counter" class="counter-icon" title="Bless cards">
             <div class="background bless"></div>
             <div class="decrement button">-</div>
@@ -102,6 +96,12 @@
             <div class="icon-text">0</div>
             <div class="increment button">+</div>
           </div>
+        </div>
+        <div id="modifier-deck-space" class="card-container modifier" title="Click to draw one card"></div>
+        <div class="modifier-actions">
+          <button type="button" class="draw-all" aria-label="Draw all monster cards" title="Draw all monster cards"></button>
+          <button type="button" class="draw-two" aria-label="Draw two modifier cards" title="Click to draw two cards"></button>
+          <button type="button" id="end-round" class="shuffle not-required" aria-label="End round and shuffle" title="Click to end round and shuffle"></button>
         </div>
       </div>
     </div>
