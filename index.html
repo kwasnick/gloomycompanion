@@ -19,10 +19,12 @@
     <script type="text/javascript" src="macros.js"></script>
     <script type="text/javascript" src="modifiers.js"></script>
     <script type="text/javascript" src="monster_stats.js"></script>
+    <script type="text/javascript" src="state.js"></script>
     <script type="text/javascript" src="logic.js"></script>
     <script type="text/javascript" src="ui.js"></script>
   </head>
-  <body onload="init(); init_ui();">
+  <body onload="init();">
+    <div id="save-error" role="alert" hidden></div>
     <div class="panecontainer">
       <div id="settingspane" class="pane expanded">
         <ul class="tabcontainer">

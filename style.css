@@ -7,6 +7,18 @@ body
     background: black;
 }
 
+#save-error {
+    position: fixed;
+    z-index: 3;
+    bottom: 1rem;
+    left: 1rem;
+    right: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+    background: #7e2626;
+    color: white;
+}
+
 .nobr
 {
     white-space:        nowrap;

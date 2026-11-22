@@ -294,6 +294,14 @@
     animation-duration:         0.5s;
 }
 
+.card.pull.after-shuffle
+{
+    -webkit-animation-delay:     0.6s;
+    animation-delay:             0.6s;
+    -webkit-animation-fill-mode: backwards;
+    animation-fill-mode:         backwards;
+}
+
 .card.lift
 {
     -webkit-animation-name:     lift;

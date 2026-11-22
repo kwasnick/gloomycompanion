@@ -1,29 +1,20 @@
-//TODO Adding an extra Guard deck will reshuffle the first one, End of round with multiple Archers, resize text, worth to show common and elite_only attributes?, shield and retaliate only when shown (apparently, attribtues are active at the beginning of the turn, and active after initiative)
-var do_shuffles = true;
 var visible_ability_decks = [];
 var modifier_deck = null;
+var active_game = null;
+var settings_controls;
+var restore_failed = false;
 var deck_definitions = load_definition(DECK_DEFINITONS);
 
 // scaling factor for card container width
 var DEFAULT_CARD_SIZE_FACTOR = 1;
-var card_size_factor =
-  parseFloat(localStorage.getItem("card_size_factor")) ||
-  DEFAULT_CARD_SIZE_FACTOR;
-
-var draw_animation_enabled =
-  localStorage.getItem("draw_animation_enabled") !== "false";
+var card_size_factor = DEFAULT_CARD_SIZE_FACTOR;
+var draw_animation_enabled = true;
 
 var SHUFFLE_ANIMATION_TIME = 600; // ms, keep in sync with CSS
 
 var DECK_TYPES = {
   MODIFIER: "modifier",
   ABILITY: "ability",
-  BOSS: "boss",
-};
-
-var EVENT_NAMES = {
-  MODIFIER_CARD_DRAWN: "modifierCardDrawn",
-  MODIFIER_DECK_SHUFFLE_REQUIRED: "modfierDeckShuffleRequired",
 };
 
 function UICard(front_element, back_element) {
@@ -183,212 +174,82 @@ function create_ability_card_front(
   return card;
 }
 
-function load_ability_deck(deck_class, deck_name, level) {
+function create_ability_deck(deck_class, deck_name, level) {
   var deck_definition = deck_definitions[deck_class];
-  deck_definition.name = deck_name;
-  deck_definition.level = level;
-
-  var loaded_deck = JSON.parse(get_from_storage(deck_name));
-
   var deck = {
     class: deck_definition.class,
-    name: deck_definition.name,
+    name: deck_name,
     type: DECK_TYPES.ABILITY,
     draw_pile: [],
     discard: [],
     move: [0, 0],
     attack: [0, 0],
     range: [0, 0],
-    level: deck_definition.level,
+    level: level,
     health: [0, 0],
-  };
-
-  for (var i = 0; i < deck_definition.cards.length; i++) {
-    var definition = deck_definition.cards[i];
-    var shuffle = definition[0];
-    var initiative = definition[1];
-    var lines = definition.slice(2);
-
-    var empty_front = document.createElement("div");
-    empty_front.className = "card ability front down";
-    var card_front = empty_front;
-    var card_back = create_ability_card_back(deck.name, deck.level);
-
-    var card = {
-      id: deck.name + "_" + i,
-      ui: new UICard(card_front, card_back),
-      shuffle_next: shuffle,
-      initiative: initiative,
-      starting_lines: lines,
-    };
-
-    card.paint_front_card = function (
-      name,
-      lines,
-      attack,
-      move,
-      range,
-      level,
-      health
-    ) {
-      this.ui.front = create_ability_card_front(
-        this.initiative,
-        name,
-        this.shuffle_next,
-        lines,
-        attack,
-        move,
-        range,
-        level,
-        health
-      );
-    };
-    if (loaded_deck && find_in_discard(loaded_deck.discard, card.id)) {
-      deck.discard.push(card);
-    } else {
-      deck.draw_pile.push(card);
-    }
-  }
-  deck.draw_top_discard = function () {
-    if (this.discard.length > 0) {
-      var card = this.discard[this.discard.length - 1];
-      var cards_lines = card.starting_lines;
-      var extra_lines = [];
-      if (this.is_boss()) {
-        var new_lines = [];
-        cards_lines.forEach(function (line) {
-          new_lines = new_lines.concat(
-            special_to_lines(line, deck.special1, deck.special2)
-          );
-        });
-        cards_lines = new_lines;
-        if (this.immunities) {
-          extra_lines = extra_lines.concat(
-            immunities_to_lines(this.immunities)
-          );
-        }
-        if (this.notes) {
-          extra_lines = extra_lines.concat(notes_to_lines(this.notes));
-        }
-      } else {
-        if (this.attributes) {
-          extra_lines = extra_lines.concat(
-            attributes_to_lines(this.attributes)
-          );
-        }
-      }
-
-      card.paint_front_card(
-        this.get_real_name(),
-        cards_lines.concat(extra_lines),
-        this.attack,
-        this.move,
-        this.range,
-        this.level,
-        this.health
-      );
-
-      card.ui.set_depth(-3);
-      if (draw_animation_enabled) {
-        card.ui.addClass("pull");
-      } else {
-        card.ui.removeClass("pull");
-      }
-      card.ui.flip_up(true);
-      card.ui.removeClass("draw");
-      card.ui.addClass("discard");
-    }
-    force_repaint_deck(this);
-  };
-
-  deck.draw_top_card = function () {
-    var cards_lines = this.draw_pile[0].starting_lines;
-    var extra_lines = [];
-    if (this.is_boss()) {
-      var new_lines = [];
-      cards_lines.forEach(function (line) {
-        new_lines = new_lines.concat(
-          special_to_lines(line, deck.special1, deck.special2)
-        );
-      });
-      cards_lines = new_lines;
-      if (this.immunities) {
-        extra_lines = extra_lines.concat(immunities_to_lines(this.immunities));
-      }
-      if (this.notes) {
-        extra_lines = extra_lines.concat(notes_to_lines(this.notes));
-      }
-    } else {
-      if (this.attributes) {
-        extra_lines = extra_lines.concat(attributes_to_lines(this.attributes));
-      }
-    }
-
-    this.draw_pile[0].paint_front_card(
-      this.get_real_name(),
-      cards_lines.concat(extra_lines),
-      this.attack,
-      this.move,
-      this.range,
-      this.level,
-      this.health
-    );
-    force_repaint_deck(this);
-  };
-
-  deck.must_reshuffle = function () {
-    if (!this.draw_pile.length) {
-      return true;
-    } else {
-      if (do_shuffles && this.discard.length) {
-        return this.discard[0].shuffle_next;
-      }
-    }
-  };
-
-  deck.set_stats_monster = function (stats) {
-    this.attack = stats.attack;
-    this.move = stats.move;
-    this.range = stats.range;
-    this.attributes = stats.attributes;
-    this.health = stats.health;
-  };
-
-  deck.set_stats_boss = function (stats) {
-    this.attack = stats.attack;
-    this.move = stats.move;
-    this.range = stats.range;
-    this.special1 = stats.special1;
-    this.special2 = stats.special2;
-    this.immunities = stats.immunities;
-    this.notes = stats.notes;
-    this.health = stats.health;
-  };
-
-  deck.get_real_name = function () {
-    return this.name ? this.name : this.class;
+    hidden: false,
   };
 
   deck.is_boss = function () {
-    return this.class == DECKS["Boss"].class;
+    return this.class === DECKS["Boss"].class;
   };
 
-  deck.set_card_piles = function (draw_pile, discard_pile) {
-    var i;
-    for (i = 0; i < draw_pile.length; i++) {
-      this.draw_pile[i].shuffle_next = draw_pile[i].shuffle_next;
-      this.draw_pile[i].initiative = draw_pile[i].initiative;
-      this.draw_pile[i].starting_lines = draw_pile[i].starting_lines;
+  if (deck.is_boss()) {
+    if (deck.name !== "Boss") {
+      Object.assign(deck, get_boss_stats(deck.name, deck.level));
     }
-    for (i = 0; i < discard_pile.length; i++) {
-      this.discard[i].shuffle_next = discard_pile[i].shuffle_next;
-      this.discard[i].initiative = discard_pile[i].initiative;
-      this.discard[i].starting_lines = discard_pile[i].starting_lines;
-    }
-  };
+  } else {
+    Object.assign(deck, get_monster_stats(deck.name, deck.level));
+  }
 
-  write_to_storage(deck.name, JSON.stringify(deck));
+  deck_definition.cards.forEach(function (definition, index) {
+    var front = document.createElement("div");
+    front.className = "card ability front down";
+    deck.draw_pile.push({
+      id: index,
+      ui: new UICard(front, create_ability_card_back(deck.name, deck.level)),
+      shuffle_next: definition[0],
+      initiative: definition[1],
+      starting_lines: definition.slice(2),
+    });
+  });
   return deck;
+}
+
+function paint_ability_card(deck, card) {
+  var lines = card.starting_lines;
+  var extra_lines = [];
+  if (deck.is_boss()) {
+    lines = [];
+    card.starting_lines.forEach(function (line) {
+      lines = lines.concat(special_to_lines(line, deck.special1, deck.special2));
+    });
+    if (deck.immunities) {
+      extra_lines = extra_lines.concat(immunities_to_lines(deck.immunities));
+    }
+    if (deck.notes) {
+      extra_lines = extra_lines.concat(notes_to_lines(deck.notes));
+    }
+  } else if (deck.attributes) {
+    extra_lines = attributes_to_lines(deck.attributes);
+  }
+
+  card.ui.front = create_ability_card_front(
+    card.initiative,
+    deck.name,
+    card.shuffle_next,
+    lines.concat(extra_lines),
+    deck.attack,
+    deck.move,
+    deck.range,
+    deck.level,
+    deck.health
+  );
+}
+
+function ability_deck_must_reshuffle(deck) {
+  return deck.draw_pile.length === 0 ||
+    (deck.discard.length > 0 && deck.discard[0].shuffle_next);
 }
 
 function place_deck(deck, container) {
@@ -426,7 +287,6 @@ function update_card_size() {
     }
     c.style.width = base_width * card_size_factor + "px";
   }
-  localStorage.setItem("card_size_factor", card_size_factor);
   var indicator = document.getElementById("cardsizevalue");
   if (indicator) {
     indicator.textContent = Math.round(card_size_factor * 100) + "%";
@@ -441,9 +301,13 @@ function refresh_ui() {
 
   var tableau = document.getElementById("tableau");
   var cards = tableau.getElementsByClassName("card");
-  for (var i = 1; i < cards.length; i++) {
-    if (cards[i].className.indexOf("ability") !== -1) {
-      var scale = cards[i].getBoundingClientRect().height / actual_card_height;
+  for (var i = 0; i < cards.length; i++) {
+    if (cards[i].classList.contains("ability")) {
+      var height = cards[i].getBoundingClientRect().height;
+      if (height === 0) {
+        continue;
+      }
+      var scale = height / actual_card_height;
       var scaled_font_size = base_font_size * scale;
       tableau.style.fontSize = scaled_font_size + "px";
       break;
@@ -451,95 +315,130 @@ function refresh_ui() {
   }
 }
 
-function reshuffle(deck, include_discards) {
-  shuffle_deck(deck, include_discards);
-
-  // This way we keep sync several decks from the same class
-  visible_ability_decks.forEach(function (visible_deck) {
-    if (visible_deck !== deck && visible_deck.class == deck.class) {
-      shuffle_deck(visible_deck, include_discards);
-      visible_deck.set_card_piles(deck.draw_pile, deck.discard);
-    }
+function show_draw_pile(deck) {
+  deck.draw_pile.forEach(function (card, index) {
+    card.ui.removeClass("lift");
+    card.ui.removeClass("pull");
+    card.ui.removeClass("after-shuffle");
+    card.ui.flip_up(false);
+    card.ui.removeClass("discard");
+    card.ui.addClass("draw");
+    card.ui.set_depth(-index - 6);
   });
 }
 
-function shuffle_deck(deck, include_discards) {
-  if (include_discards) {
-    deck.draw_pile = deck.draw_pile.concat(deck.discard);
-    deck.discard = [];
-  }
-
-  shuffle_list(deck.draw_pile);
-
-  for (var i = 0; i < deck.draw_pile.length; i++) {
-    var card = deck.draw_pile[i];
-
+function render_deck_piles(deck) {
+  show_draw_pile(deck);
+  deck.discard.forEach(function (card, index) {
+    if (deck.type === DECK_TYPES.ABILITY) {
+      paint_ability_card(deck, card);
+    }
     card.ui.removeClass("lift");
-    card.ui.removeClass("pull");
-
-    card.ui.flip_up(false);
-
-    card.ui.removeClass("discard");
-    card.ui.addClass("draw");
-
-    card.ui.set_depth(-i - 6);
-  }
-
-  if (draw_animation_enabled) {
-    deck.deck_space.classList.add("shuffle-animation");
-    window.setTimeout(function () {
-      deck.deck_space.classList.remove("shuffle-animation");
-    }, SHUFFLE_ANIMATION_TIME);
-  } else {
-    deck.deck_space.classList.remove("shuffle-animation");
+    send_to_discard(card, false, false);
+    card.ui.set_depth(-index - 3);
+  });
+  if (deck.split_draw) {
+    show_split_draw(deck, true);
   }
 }
 
-function flip_up_top_card(deck) {
-  var card;
-  for (var i = 0; i < deck.discard.length; i++) {
-    card = deck.discard[i];
+function play_shuffle_animation(deck) {
+  if (draw_animation_enabled) {
+    var space = deck.deck_space;
+    window.clearTimeout(deck.shuffle_timer);
+    space.classList.add("shuffle-animation");
+    deck.shuffle_timer = window.setTimeout(function () {
+      space.classList.remove("shuffle-animation");
+    }, SHUFFLE_ANIMATION_TIME);
+  }
+}
+
+function flip_up_top_card(deck, animate, after_shuffle) {
+  deck.discard.forEach(function (card) {
     card.ui.removeClass("lift");
     card.ui.removeClass("pull");
+    card.ui.removeClass("after-shuffle");
     card.ui.push_down();
-  }
+  });
 
-  if (deck.discard.length > 0 && draw_animation_enabled) {
+  if (deck.discard.length > 0 && animate && draw_animation_enabled) {
     deck.discard[0].ui.addClass("lift");
   }
 
-  card = deck.draw_pile.shift();
-  send_to_discard(card, true);
+  var card = deck.draw_pile.shift();
+  send_to_discard(card, animate, after_shuffle);
   deck.discard.unshift(card);
+  deck.draw_pile.forEach(function (remaining_card, index) {
+    remaining_card.ui.set_depth(-index - 6);
+  });
 }
 
-function send_to_discard(card, pull_animation) {
+function send_to_discard(card, animate, after_shuffle) {
   card.ui.set_depth(-3);
-
-  if (pull_animation && draw_animation_enabled) {
+  card.ui.removeClass("pull");
+  card.ui.removeClass("after-shuffle");
+  if (animate && draw_animation_enabled) {
     card.ui.addClass("pull");
-  } else {
-    card.ui.removeClass("pull");
+    if (after_shuffle) {
+      card.ui.addClass("after-shuffle");
+    }
   }
-
   card.ui.flip_up(true);
-
   card.ui.removeClass("draw");
   card.ui.addClass("discard");
 }
 
-function draw_ability_card(deck) {
-  if (deck.must_reshuffle()) {
-    reshuffle(deck, true);
-  } else {
-    visible_ability_decks.forEach(function (visible_deck) {
-      if (visible_deck.class == deck.class) {
-        visible_deck.draw_top_card();
-        flip_up_top_card(visible_deck);
-      }
-    });
+function decks_of_class(deck_class) {
+  return visible_ability_decks.filter(function (deck) {
+    return deck.class === deck_class;
+  });
+}
+
+function reshuffle_ability_decks(decks) {
+  var first = decks[0];
+  first.draw_pile = first.draw_pile.concat(first.discard);
+  first.discard = [];
+  shuffle_list(first.draw_pile);
+  var piles = encode_piles(first, "id");
+
+  decks.forEach(function (deck) {
+    if (deck !== first) {
+      set_ability_piles(deck, piles);
+    }
+    show_draw_pile(deck);
+    play_shuffle_animation(deck);
+  });
+}
+
+function draw_ability_cards(decks, draw_after_shuffle) {
+  var shuffled = ability_deck_must_reshuffle(decks[0]);
+  if (shuffled) {
+    reshuffle_ability_decks(decks);
+    if (!draw_after_shuffle) {
+      return;
+    }
   }
-  write_to_storage(deck.name, JSON.stringify(deck));
+
+  decks.forEach(function (deck) {
+    paint_ability_card(deck, deck.draw_pile[0]);
+    force_repaint_deck(deck);
+    flip_up_top_card(deck, true, shuffled);
+  });
+}
+
+function draw_ability_card(deck) {
+  draw_ability_cards(decks_of_class(deck.class), false);
+  save_app_state();
+}
+
+function draw_all_monster_cards() {
+  var classes = new Set(visible_ability_decks.map(function (deck) {
+    return deck.class;
+  }));
+  classes.forEach(function (deck_class) {
+    draw_ability_cards(decks_of_class(deck_class), true);
+  });
+  save_app_state();
 }
 
 function prevent_pull_animation(deck) {
@@ -548,242 +447,141 @@ function prevent_pull_animation(deck) {
       deck.discard[1].ui.removeClass("lift");
       deck.discard[0].ui.addClass("lift");
     }
-
     deck.discard[0].ui.removeClass("pull");
+    deck.discard[0].ui.removeClass("after-shuffle");
+  }
+}
+
+function change_modifier_card(deck, card_type, delta) {
+  var index = deck.draw_pile.findIndex(function (card) {
+    return card.card_type === card_type;
+  });
+  if (delta > 0 && count_modifier_cards(deck, card_type) < 10) {
+    deck.draw_pile.push(define_modifier_card(MODIFIER_CARDS[card_type.toUpperCase()]));
+  } else if (delta < 0 && index !== -1) {
+    deck.draw_pile.splice(index, 1);
+  } else {
+    return;
+  }
+
+  shuffle_list(deck.draw_pile);
+  show_draw_pile(deck);
+  force_repaint_deck(deck);
+  play_shuffle_animation(deck);
+  commit_modifier_action(deck);
+}
+
+function count_modifier_cards(deck, card_type) {
+  return deck.draw_pile.filter(function (card) {
+    return card.card_type === card_type;
+  }).length;
+}
+
+function modifier_shuffle_required(deck) {
+  return deck.discard.some(function (card) {
+    return card.shuffle_next_round;
+  });
+}
+
+function show_split_draw(deck, split) {
+  deck.split_draw = split;
+  if (split) {
+    deck.discard[0].ui.addClass("right");
+    deck.discard[1].ui.addClass("left");
+  } else {
+    deck.discard[0].ui.removeClass("right");
+    deck.discard[1].ui.removeClass("left");
   }
 }
 
 function reshuffle_modifier_deck(deck) {
-  deck.clean_discard_pile();
-  reshuffle(deck, true);
-  document.body.dispatchEvent(
-    new CustomEvent(EVENT_NAMES.MODIFIER_DECK_SHUFFLE_REQUIRED, {
-      detail: { shuffle: false },
-    })
-  );
+  if (deck.split_draw) {
+    show_split_draw(deck, false);
+  }
+  var reusable_cards = deck.discard.filter(function (card) {
+    return card.card_type !== CARD_TYPES_MODIFIER.BLESS &&
+      card.card_type !== CARD_TYPES_MODIFIER.CURSE;
+  });
+  deck.draw_pile = deck.draw_pile.concat(reusable_cards);
+  deck.discard = [];
+  shuffle_list(deck.draw_pile);
+  show_draw_pile(deck);
+  force_repaint_deck(deck);
+  play_shuffle_animation(deck);
 }
 
 function draw_modifier_card(deck) {
-  deck.clean_advantage_deck();
-
-  if (deck.must_reshuffle()) {
+  if (deck.split_draw) {
+    show_split_draw(deck, false);
+  }
+  if (deck.draw_pile.length === 0) {
     reshuffle_modifier_deck(deck);
   } else {
-    flip_up_top_card(deck);
-
-    document.body.dispatchEvent(
-      new CustomEvent(EVENT_NAMES.MODIFIER_CARD_DRAWN, {
-        detail: {
-          card_type: deck.discard[0].card_type,
-          count: deck.count(deck.discard[0].card_type),
-        },
-      })
-    );
-
-    if (deck.shuffle_end_of_round()) {
-      document.body.dispatchEvent(
-        new CustomEvent(EVENT_NAMES.MODIFIER_DECK_SHUFFLE_REQUIRED, {
-          detail: { shuffle: true },
-        })
-      );
-    }
+    flip_up_top_card(deck, true, false);
   }
-  write_to_storage("modifier_deck", JSON.stringify(deck));
+  commit_modifier_action(deck);
 }
 
 function double_draw(deck) {
-  var advantage_card;
-  // Case there was 1 card in draw_pile when we clicked "draw 2".
-  //    now we should draw, save that card, reshuffle, and
-  //    draw the next
-  if (deck.draw_pile.length == 1) {
-    draw_modifier_card(deck);
-    advantage_card = deck.discard[0];
+  if (deck.split_draw) {
+    show_split_draw(deck, false);
+  }
+  if (deck.draw_pile.length === 0) {
     reshuffle_modifier_deck(deck);
-    advantage_card = deck.draw_pile.shift();
-    send_to_discard(advantage_card, false);
-    deck.discard.unshift(advantage_card);
-    draw_modifier_card(deck);
-  }
-  // Case there were 0 cards in draw_pile when we clicked "draw 2".
-  //    we should reshuffle, draw 1 and send it to advantage_place,
-  //    draw the next
-  else if (deck.draw_pile.length == 0) {
-    // This is in case the previous draw was double as well
-    deck.clean_advantage_deck();
+  } else if (deck.draw_pile.length === 1) {
+    // Keep the last draw out of the reshuffle so it remains part of the pair.
+    var first_card = deck.draw_pile.shift();
     reshuffle_modifier_deck(deck);
-    draw_modifier_card(deck);
-    advantage_card = deck.discard[0];
-    draw_modifier_card(deck);
+    deck.draw_pile.unshift(first_card);
+    first_card.ui.attach(deck.deck_space);
   }
-  // Every other simple case
-  else {
-    draw_modifier_card(deck);
-    advantage_card = deck.discard[0];
-    draw_modifier_card(deck);
-  }
-  deck.discard[0].ui.addClass("right");
-  advantage_card.ui.addClass("left");
-  deck.advantage_to_clean = true;
+
+  flip_up_top_card(deck, false, false);
+  flip_up_top_card(deck, true, false);
+  show_split_draw(deck, true);
+  commit_modifier_action(deck);
 }
 
-function draw_next_ability_card(deck) {
-  function do_draw() {
-    visible_ability_decks.forEach(function (visible_deck) {
-      if (visible_deck.class == deck.class) {
-        visible_deck.draw_top_card();
-        flip_up_top_card(visible_deck);
-      }
-    });
-
-    write_to_storage(deck.name, JSON.stringify(deck));
-  }
-
-  if (deck.must_reshuffle()) {
-    reshuffle(deck, true);
-    if (draw_animation_enabled) {
-      window.setTimeout(do_draw, SHUFFLE_ANIMATION_TIME);
-    } else {
-      do_draw();
-    }
-  } else {
-    do_draw();
-  }
-}
-
-function draw_all_monster_cards() {
-  var processed = {};
-  visible_ability_decks.forEach(function (deck) {
-    if (!processed[deck.class]) {
-      processed[deck.class] = true;
-      draw_next_ability_card(deck);
-    }
-  });
-}
-
-function load_modifier_deck() {
+function create_modifier_deck(saved) {
   var deck = {
-    name: "Monster modifier deck",
     type: DECK_TYPES.MODIFIER,
     draw_pile: [],
     discard: [],
-    advantage_to_clean: false,
+    split_draw: false,
   };
 
-  deck.draw_top_discard = function () {
-    if (this.discard.length > 0) {
-      var card = this.discard[this.discard.length - 1];
-      card.ui.set_depth(-3);
-      if (draw_animation_enabled) {
-        card.ui.addClass("pull");
-      } else {
-        card.ui.removeClass("pull");
+  if (saved === null) {
+    deck.draw_pile = MODIFIER_DECK.map(define_modifier_card);
+    shuffle_list(deck.draw_pile);
+  } else {
+    var piles = saved.piles;
+    require_saved_state(piles && Array.isArray(piles.draw_pile) && Array.isArray(piles.discard));
+    require_saved_state(typeof saved.split_draw === "boolean" &&
+      (!saved.split_draw || piles.discard.length >= 2));
+    var remaining = new Map();
+    MODIFIER_DECK.forEach(function (definition) {
+      remaining.set(definition.type, (remaining.get(definition.type) || 0) + 1);
+    });
+    function restore_card(type) {
+      require_saved_state(typeof type === "string" && Object.hasOwn(MODIFIER_CARDS, type.toUpperCase()));
+      var definition = MODIFIER_CARDS[type.toUpperCase()];
+      require_saved_state(definition.type === type);
+      if (remaining.has(type)) {
+        remaining.set(type, remaining.get(type) - 1);
       }
-      card.ui.flip_up(true);
-      card.ui.removeClass("draw");
-      card.ui.addClass("discard");
+      return define_modifier_card(definition);
     }
-    force_repaint_deck(this);
-  };
-
-  deck.count = function (card_type) {
-    return this.draw_pile.filter(function (card) {
-      return card.card_type === card_type;
-    }).length;
-  }.bind(deck);
-
-  deck.remove_card = function (card_type) {
-    for (var i = 0; i < deck.draw_pile.length; i++) {
-      if (deck.draw_pile[i].card_type == card_type) {
-        deck.draw_pile.splice(i, 1);
-        reshuffle(deck, false);
-
-        force_repaint_deck(deck);
-        break;
-      }
-    }
-    write_to_storage("modifier_deck", JSON.stringify(modifier_deck));
-
-    return this.count(card_type);
-  }.bind(deck);
-
-  deck.add_card = function (card_type) {
-    // Rulebook p. 23: "a maximum of only 10 curse [and 10 bless] cards can be placed into any one deck"
-    if (this.count(card_type) < 10) {
-      // TODO: Brittle
-      deck.draw_pile.push(
-        define_modifier_card(MODIFIER_CARDS[card_type.toUpperCase()])
-      );
-
-      force_repaint_deck(deck);
-      reshuffle(deck, false);
-    }
-    write_to_storage("modifier_deck", JSON.stringify(modifier_deck));
-
-    return this.count(card_type);
-  }.bind(deck);
-
-  deck.shuffle_end_of_round = function () {
-    return (
-      this.discard.filter(function (card) {
-        return card.shuffle_next_round;
-      }).length > 0
-    );
-  }.bind(deck);
-
-  deck.must_reshuffle = function () {
-    return !this.draw_pile.length;
-  }.bind(deck);
-
-  deck.clean_discard_pile = function () {
-    for (var i = 0; i < deck.discard.length; i++) {
-      if (
-        this.discard[i].card_type == CARD_TYPES_MODIFIER.BLESS ||
-        this.discard[i].card_type == CARD_TYPES_MODIFIER.CURSE
-      ) {
-        //Delete this curse/bless that has been used
-        this.discard.splice(i, 1);
-        i--;
-      }
-    }
-
-    // This is needed every time we update
-    force_repaint_deck(this);
-  }.bind(deck);
-
-  deck.clean_advantage_deck = function () {
-    if (deck.advantage_to_clean && deck.discard[1]) {
-      deck.advantage_to_clean = false;
-      deck.discard[0].ui.removeClass("right");
-      deck.discard[0].ui.removeClass("left");
-      deck.discard[1].ui.removeClass("left");
-      deck.discard[1].ui.removeClass("left");
-    }
-  }.bind(deck);
-  var loaded_deck = JSON.parse(get_from_storage("modifier_deck"));
-
-  MODIFIER_DECK.forEach(function (card_definition) {
-    var card = define_modifier_card(card_definition);
-    if (
-      loaded_deck &&
-      find_in_discard_and_remove(loaded_deck.discard, card.card_type)
-    ) {
-      deck.discard.push(card);
-    } else {
-      deck.draw_pile.push(card);
-    }
-  });
-
-  return deck;
-}
-
-function find_in_discard_and_remove(discard, card_type) {
-  for (var i = 0; i < discard.length; i++) {
-    if (discard[i].card_type === card_type) {
-      return discard.splice(i, 1);
-    }
+    deck.draw_pile = piles.draw_pile.map(restore_card);
+    deck.discard = piles.discard.map(restore_card);
+    remaining.forEach(function (count) {
+      require_saved_state(count === 0);
+    });
+    [CARD_TYPES_MODIFIER.BLESS, CARD_TYPES_MODIFIER.CURSE].forEach(function (type) {
+      require_saved_state(count_modifier_cards(deck, type) <= 10);
+    });
+    deck.split_draw = saved.split_draw;
   }
-  return null;
+  return deck;
 }
 
 function create_modifier_card_back() {
@@ -819,11 +617,10 @@ function define_modifier_card(card_definition) {
 }
 
 function end_round() {
-  if (modifier_deck.shuffle_end_of_round()) {
-    modifier_deck.clean_advantage_deck();
+  if (modifier_shuffle_required(modifier_deck)) {
     reshuffle_modifier_deck(modifier_deck);
+    commit_modifier_action(modifier_deck);
   }
-  write_to_storage("modifier_deck", JSON.stringify(modifier_deck));
 }
 
 function load_definition(card_database) {
@@ -891,272 +688,169 @@ function get_boss_stats(name, level) {
   };
 }
 
-function apply_deck_selection(decks, preserve_existing_deck_state) {
-  var container = document.getElementById("tableau");
-  document.getElementById("currentdeckslist").innerHTML = "";
-  var decks_to_remove = visible_ability_decks.filter(function (visible_deck) {
-    return (
-      !preserve_existing_deck_state ||
-      decks.filter(function (deck) {
-        return (
-          deck.name == visible_deck.name && deck.level == visible_deck.level
-        );
-      }).length == 0
-    );
-  });
+function set_deck_visibility(deck, hidden) {
+  deck.hidden = hidden;
+  toggle_class(deck.deck_space, "hiddendeck", hidden);
+  deck.stat_block.hidden = hidden;
+}
 
-  var decks_to_add = decks.filter(function (deck) {
-    return (
-      !preserve_existing_deck_state ||
-      visible_ability_decks.filter(function (visible_deck) {
-        return (
-          deck.name == visible_deck.name && deck.level == visible_deck.level
-        );
-      }).length == 0
-    );
-  });
-
-  if (!modifier_deck) {
-    init_modifier_deck();
-    add_modifier_deck(container, modifier_deck, preserve_existing_deck_state);
-    if (preserve_existing_deck_state) {
-      var loaded_modifier_deck = JSON.parse(get_from_storage("modifier_deck"));
-      var curses = count_type("curse", loaded_modifier_deck);
-      var blessings = count_type("bless", loaded_modifier_deck);
-      for (var i = 0; i < blessings; i++) {
-        modifier_deck.add_card("bless");
-      }
-      for (var i = 0; i < curses; i++) {
-        modifier_deck.add_card("curse");
-      }
-      modifier_deck.draw_top_discard();
-
-      document.body.dispatchEvent(
-        new CustomEvent(EVENT_NAMES.MODIFIER_DECK_SHUFFLE_REQUIRED, {
-          detail: { shuffle: modifier_deck.shuffle_end_of_round() },
-        })
-      );
-    }
-  } else if (!preserve_existing_deck_state) {
-    init_modifier_deck();
-    add_modifier_deck(container, modifier_deck, preserve_existing_deck_state);
-  }
-  write_to_storage("modifier_deck", JSON.stringify(modifier_deck));
-
+function show_game(decks, modifier, options) {
+  var tableau = document.getElementById("tableau");
+  var current_decks = document.getElementById("currentdeckslist");
   var old_stats = document.getElementById("monster-stats-container");
+
+  visible_ability_decks.forEach(function (deck) {
+    tableau.removeChild(deck.deck_space);
+  });
   if (old_stats) {
-    container.removeChild(old_stats);
+    tableau.removeChild(old_stats);
   }
+  remove_child(current_decks);
+
+  active_game = options;
+  visible_ability_decks = decks;
+  if (modifier_deck !== null) {
+    window.clearTimeout(modifier_deck.shuffle_timer);
+  }
+  modifier_deck = modifier;
+  mount_modifier_deck(modifier, options.show_modifier_deck);
+
   var stats_container = document.createElement("div");
   stats_container.id = "monster-stats-container";
   stats_container.className = "monster-stats-container";
+  toggle_class(stats_container, "collapsed", options.stats_collapsed);
+  stats_container.onclick = function () {
+    options.stats_collapsed = this.classList.toggle("collapsed");
+    save_app_state();
+  };
 
-  var collapse_placeholder = document.createElement("div");
-  collapse_placeholder.className = "monster-stats-placeholder";
-  collapse_placeholder.textContent = "Monster Stats";
-  stats_container.appendChild(collapse_placeholder);
+  var placeholder = document.createElement("div");
+  placeholder.className = "monster-stats-placeholder";
+  placeholder.textContent = "Monster Stats";
+  stats_container.appendChild(placeholder);
+  tableau.appendChild(stats_container);
 
-  stats_container.addEventListener("click", function () {
-    this.classList.toggle("collapsed");
-  });
-
-  container.appendChild(stats_container);
-
-  decks_to_remove.forEach(function (deck) {
-    deck.discard_deck();
-
-  });
-  visible_ability_decks.forEach(function (deck) {
-    var deckid = deck.get_real_name().replace(/\s+/g, "");
-    var stat_block = create_stat_block(deck);
-    stat_block.id = deckid + "-stats";
-    deck.stat_block = stat_block;
-    if (!deck.deck_space || deck.deck_space.className != "hiddendeck") {
-      stats_container.appendChild(stat_block);
-    }
-  });
-
-
-  decks_to_add.forEach(function (deck) {
-    var deckid = deck.get_real_name().replace(/\s+/g, "");
-    var deck_space = document.createElement("div");
-    deck_space.id = deckid;
-    deck_space.addEventListener(
-      "contextmenu",
-      function (e) {
-        this.className = "hiddendeck";
-        var sb = document.getElementById(deckid + "-stats");
-        if (sb) sb.style.display = "none";
-        e.preventDefault();
-      },
-      false
-    );
-    deck_space.className = "card-container";
-    deck_space.title = "Click to draw enemy ability";
-
-    container.appendChild(deck_space);
-
-    place_deck(deck, deck_space);
-    reshuffle(deck, !preserve_existing_deck_state);
-    if (preserve_existing_deck_state) {
-    }
-    deck_space.onclick = draw_ability_card.bind(null, deck);
-
-    deck.discard_deck = function () {
-      var index = visible_ability_decks.indexOf(this);
-
-      if (index > -1) {
-        visible_ability_decks.splice(index, 1);
-      }
-
-      container.removeChild(deck_space);
-      if (this.stat_block && this.stat_block.parentNode) {
-        this.stat_block.parentNode.removeChild(this.stat_block);
-      }
+  decks.forEach(function (deck) {
+    var deck_id = deck.name.replace(/\s+/g, "");
+    var space = document.createElement("div");
+    space.id = deck_id;
+    space.className = "card-container";
+    space.title = "Click to draw enemy ability";
+    space.onclick = draw_ability_card.bind(null, deck);
+    space.oncontextmenu = function (event) {
+      event.preventDefault();
+      set_deck_visibility(deck, true);
+      save_app_state();
     };
+    render_deck_piles(deck);
+    place_deck(deck, space);
+    tableau.appendChild(space);
 
-    if (deck.is_boss()) {
-      // We don't want stats if someone selects Boss on the deck tab
-      if (deck.get_real_name() != "Boss") {
-        deck.set_stats_boss(get_boss_stats(deck.get_real_name(), deck.level));
-      }
-    } else {
-      deck.set_stats_monster(
-        get_monster_stats(deck.get_real_name(), deck.level)
-      );
-    }
-    var stat_block = create_stat_block(deck);
-    stat_block.id = deckid + "-stats";
-    deck.stat_block = stat_block;
-    stats_container.appendChild(stat_block);
+    deck.stat_block = create_stat_block(deck);
+    deck.stat_block.id = deck_id + "-stats";
+    stats_container.appendChild(deck.stat_block);
+    set_deck_visibility(deck, deck.hidden);
 
-    reshuffle(deck);
-    if (preserve_existing_deck_state) {
-      deck.draw_top_discard();
-    } else {
-      force_repaint_deck(deck);
-    }
-    visible_ability_decks.push(deck);
-
-    var currentdeckslist = document.getElementById("currentdeckslist");
-    var list_item = document.createElement("li");
-    list_item.className = "currentdeck";
-    currentdeckslist.appendChild(list_item);
+    var item = document.createElement("li");
+    item.className = "currentdeck";
     var label = document.createElement("a");
-    label.id = "switch-" + deckid;
-    label.href = "#switch-" + deckid;
-    label.innerText = deck.get_real_name();
+    label.id = "switch-" + deck_id;
+    label.href = "#switch-" + deck_id;
+    label.innerText = deck.name;
     label.title = "Click to show/hide deck";
-    label.addEventListener(
-      "click",
-      function (e) {
-        var deckId = this.id.replace("switch-", "");
-        var d = document.getElementById(deckId);
-        var wasHidden = d.className == "hiddendeck";
-        d.className = wasHidden ? "card-container" : "hiddendeck";
-        var sb = document.getElementById(deckId + "-stats");
-        if (sb) sb.style.display = wasHidden ? "" : "none";
-      },
-      false
-    );
-    list_item.appendChild(label);
+    label.onclick = function () {
+      set_deck_visibility(deck, !deck.hidden);
+      refresh_ui();
+      save_app_state();
+    };
+    item.appendChild(label);
+    current_decks.appendChild(item);
   });
 
-  // Apply user preferred card size and rescale text if necessary
   update_card_size();
 }
 
-function init_modifier_deck() {
-  modifier_deck = load_modifier_deck();
-}
-
-function count_type(type, deck) {
-  var count = 0;
-  if (deck) {
-    for (var i = 0; i < deck.draw_pile.length; i++) {
-      if (deck.draw_pile[i].card_type === type) {
-        count++;
-      }
+function build_selected_decks(selection, existing_decks) {
+  var selected = selection.map(function (entry) {
+    return existing_decks.find(function (deck) {
+      return deck.name === entry.name && deck.level === entry.level;
+    });
+  });
+  var shared_decks = new Map();
+  selected.forEach(function (deck) {
+    if (deck) {
+      shared_decks.set(deck.class, deck);
     }
-  }
-  return count;
-}
-
-function add_modifier_deck(container, deck, preserve_discards) {
-  function init_counter(element, card_type, increment_func, decrement_func) {
-    var text_element = element.querySelector(".icon-text");
-    var inc_btn = element.querySelector(".increment.button");
-    var dec_btn = element.querySelector(".decrement.button");
-
-    if (inc_btn) {
-      inc_btn.onclick = function () {
-        text_element.innerText = increment_func(card_type);
-      };
+  });
+  return selection.map(function (entry, index) {
+    if (selected[index]) {
+      return selected[index];
     }
-    if (dec_btn) {
-      dec_btn.onclick = function () {
-        text_element.innerText = decrement_func(card_type);
-      };
-    }
-
-    document.body.addEventListener(
-      EVENT_NAMES.MODIFIER_CARD_DRAWN,
-      function (e) {
-        if (e.detail.card_type === card_type) {
-          text_element.innerText = e.detail.count;
-        }
-      }
-    );
-  }
-
-  function indicate_shuffle_required(e) {
-    if (e.detail.shuffle) {
-      window.setTimeout(function () {
-        end_round_div.className = "counter-icon shuffle";
-      }, 400);
+    var deck = create_ability_deck(entry.class, entry.name, entry.level);
+    if (shared_decks.has(deck.class)) {
+      set_ability_piles(deck, encode_piles(shared_decks.get(deck.class), "id"));
     } else {
-      end_round_div.className = "counter-icon shuffle not-required";
+      shuffle_list(deck.draw_pile);
+      shared_decks.set(deck.class, deck);
     }
-  }
-
-  var modifier_container = document.getElementById("modifier-container");
-  var deck_column = modifier_container.querySelector(".modifier-deck-column-2");
-  var button_div = modifier_container.querySelector(".modifier-deck-column-1");
-
-  var deck_space = document.getElementById("modifier-deck-space");
-  var draw_two_button = modifier_container.querySelector(".button.draw-two");
-  var draw_all_button = modifier_container.querySelector(".button.draw-all");
-  var end_round_div = document.getElementById("end-round");
-
-  init_counter(
-    document.getElementById("bless-counter"),
-    "bless",
-    deck.add_card,
-    deck.remove_card
-  );
-  init_counter(
-    document.getElementById("curse-counter"),
-    "curse",
-    deck.add_card,
-    deck.remove_card
-  );
-
-  end_round_div.onclick = end_round;
-  draw_two_button.onclick = double_draw.bind(null, modifier_deck);
-  draw_all_button.onclick = draw_all_monster_cards;
-
-  document.body.addEventListener(
-    EVENT_NAMES.MODIFIER_DECK_SHUFFLE_REQUIRED,
-    indicate_shuffle_required
-  );
-
-  container.appendChild(modifier_container);
-
-  place_deck(deck, deck_space);
-  reshuffle(deck, !preserve_discards);
-  deck_space.onclick = draw_modifier_card.bind(null, deck);
+    return deck;
+  });
 }
 
+function start_game(selection, options, reset) {
+  var existing_decks = reset ? [] : visible_ability_decks;
+  var existing_modifier = reset ? null : modifier_deck;
+  var decks = build_selected_decks(selection, existing_decks);
+  var modifier = existing_modifier === null ? create_modifier_deck(null) : existing_modifier;
+
+  show_game(decks, modifier, options);
+  if (existing_modifier === null) {
+    play_shuffle_animation(modifier);
+  }
+  decks.forEach(function (deck) {
+    if (!existing_decks.includes(deck) && deck.discard.length === 0) {
+      play_shuffle_animation(deck);
+    }
+  });
+  restore_failed = false;
+}
+
+function mount_modifier_deck(deck, show) {
+  function init_counter(id, card_type) {
+    var counter = document.getElementById(id);
+    counter.querySelector(".increment").onclick = change_modifier_card.bind(null, deck, card_type, 1);
+    counter.querySelector(".decrement").onclick = change_modifier_card.bind(null, deck, card_type, -1);
+  }
+
+  var container = document.getElementById("modifier-container");
+  container.style.display = show ? "block" : "none";
+  var space = document.getElementById("modifier-deck-space");
+  space.classList.remove("shuffle-animation");
+  remove_child(space);
+  render_deck_piles(deck);
+  place_deck(deck, space);
+  space.onclick = draw_modifier_card.bind(null, deck);
+
+  init_counter("bless-counter", CARD_TYPES_MODIFIER.BLESS);
+  init_counter("curse-counter", CARD_TYPES_MODIFIER.CURSE);
+  document.getElementById("end-round").onclick = end_round;
+  container.querySelector(".draw-two").onclick = double_draw.bind(null, deck);
+  container.querySelector(".draw-all").onclick = draw_all_monster_cards;
+  update_modifier_controls(deck);
+}
+
+function update_modifier_controls(deck) {
+  document.querySelector("#bless-counter .icon-text").textContent =
+    count_modifier_cards(deck, CARD_TYPES_MODIFIER.BLESS);
+  document.querySelector("#curse-counter .icon-text").textContent =
+    count_modifier_cards(deck, CARD_TYPES_MODIFIER.CURSE);
+  toggle_class(document.getElementById("end-round"), "not-required", !modifier_shuffle_required(deck));
+}
+
+function commit_modifier_action(deck) {
+  update_modifier_controls(deck);
+  save_app_state();
+}
 
 function create_stat_block(deck) {
   function stat_line(macro, values) {
@@ -1241,7 +935,7 @@ function create_stat_block(deck) {
   block.className = "monster-stat-block";
 
   var name = document.createElement("div");
-  name.textContent = deck.get_real_name();
+  name.textContent = deck.name;
   block.appendChild(name);
 
   var grid = document.createElement("div");
@@ -1307,7 +1001,6 @@ function create_stat_block(deck) {
   return block;
 }
 function LevelSelector(text, inline) {
-  var max_level = 7;
   var level = {};
   level.html = inline
     ? document.createElement("span")
@@ -1322,16 +1015,21 @@ function LevelSelector(text, inline) {
 
   var level_spinner = create_input("number", "scenario_number", "1", "");
   level_spinner.input.min = 0;
-  level_spinner.input.max = max_level;
+  level_spinner.input.max = 7;
   level.html.appendChild(level_spinner.input);
   level.spinner = level_spinner.input;
 
   level.get_selection = function () {
-    return this.spinner.value > max_level ? max_level : this.spinner.value;
+    var value = this.spinner.value;
+    var level = Number(value);
+    if (value === "" || !valid_monster_level(level)) {
+      throw new Error("Select a monster level from 0 to 7.");
+    }
+    return level;
   };
 
   level.set_value = function (value) {
-    this.spinner.value = value > max_level ? max_level : value;
+    this.spinner.value = value;
   };
 
   return level;
@@ -1352,11 +1050,14 @@ function DeckList() {
 
   var dom_dict = create_input("button", "applylevel", "Apply All", "");
   dom_dict.input.onclick = function () {
-    var key;
-    for (key in decklist.level_selectors) {
-      decklist.level_selectors[key].set_value(
-        decklist.global_level_selector.get_selection()
-      );
+    try {
+      var level = decklist.global_level_selector.get_selection();
+      Object.values(decklist.level_selectors).forEach(function (selector) {
+        selector.set_value(level);
+      });
+      save_app_state();
+    } catch (error) {
+      report_state_error("Could not apply the global level.", error);
     }
   };
   listitem.appendChild(dom_dict.root);
@@ -1383,17 +1084,13 @@ function DeckList() {
   };
 
   decklist.get_selected_decks = function () {
-    var selected_checkbox = this.get_selection();
-    var selected_decks = concat_arrays(
-      selected_checkbox.map(
-        function (name) {
-          var deck = name in DECKS ? DECKS[name] : [];
-          deck.level = decklist.level_selectors[name].get_selection();
-          return deck;
-        }.bind(this)
-      )
-    );
-    return selected_decks;
+    return this.get_selection().map(function (name) {
+      return {
+        name: name,
+        class: DECKS[name].class,
+        level: decklist.level_selectors[name].get_selection(),
+      };
+    });
   };
 
   decklist.set_selection = function (selected_deck_names) {
@@ -1446,10 +1143,12 @@ function ScenarioList(scenarios) {
   scenariolist.ul.appendChild(scenario_spinner.input);
   scenariolist.spinner = scenario_spinner.input;
 
-  scenariolist.get_selection = function () {
-    // We're using the scenario index that is zero-based, but the scenario list is 1-based
-    var current_value = scenariolist.spinner.value - 1;
-    return Math.min(current_value, scenarios.length + 1);
+  scenariolist.get_number = function () {
+    var number = Number(this.spinner.value);
+    if (!Number.isInteger(number) || number < 1 || number > scenarios.length) {
+      throw new Error("Select a scenario number from 1 to " + scenarios.length + ".");
+    }
+    return number;
   };
 
   scenariolist.get_level = function (deck_name, special_rules) {
@@ -1462,8 +1161,7 @@ function ScenarioList(scenarios) {
     ) {
       return Math.min(
         7,
-        parseInt(base_level) +
-          parseInt(SPECIAL_RULES.living_corpse_two_levels_extra.extra_levels)
+        base_level + SPECIAL_RULES.living_corpse_two_levels_extra.extra_levels
       );
     } else {
       return base_level;
@@ -1471,202 +1169,185 @@ function ScenarioList(scenarios) {
   };
 
   scenariolist.get_scenario_decks = function () {
-    return this.decks[this.get_selection()].map(function (deck) {
-      if (DECKS[deck.name]) {
-        deck.class = DECKS[deck.name].class;
-      } else if (deck.name.indexOf("Boss") != -1) {
-        deck.class = DECKS["Boss"].class;
-      }
-      deck.level = scenariolist.get_level(
-        deck.name,
-        scenariolist.get_special_rules()
-      );
-      return deck;
+    var index = this.get_number() - 1;
+    var special_rules = this.special_rules[index];
+    return this.decks[index].map(function (deck) {
+      return {
+        name: deck.name,
+        class: get_ability_class(deck.name),
+        level: scenariolist.get_level(deck.name, special_rules),
+      };
     });
-  };
-
-  scenariolist.get_special_rules = function () {
-    return this.special_rules[this.get_selection()];
   };
 
   return scenariolist;
 }
 
-function load_saved_state(decklist, scenariolist) {
-  var selected_deck_names = JSON.parse(get_from_storage("selected_deck_names"));
-  if (selected_deck_names && selected_deck_names.length) {
-    decklist.set_selection(selected_deck_names);
-    var selected_decks = selected_deck_names.map(function (deck_names) {
-      return load_ability_deck(
-        deck_names.class,
-        deck_names.name,
-        deck_names.level
-      );
-    });
-    apply_deck_selection(selected_decks, true);
+function get_ability_class(name) {
+  if (Object.hasOwn(DECKS, name)) {
+    return DECKS[name].class;
+  }
+  if (name.startsWith("Boss: ") && Object.hasOwn(MONSTER_STATS.bosses, name.slice(6))) {
+    return DECKS.Boss.class;
+  }
+}
 
-    var scenario_number = parseInt(get_from_storage("scenario_number"));
-    if (!isNaN(scenario_number)) {
-      scenariolist.spinner.value = scenario_number;
-    }
-    var scenario_level = parseInt(get_from_storage("scenario_level"));
-    if (!isNaN(scenario_level)) {
-      scenariolist.level_selector.set_value(scenario_level);
-    }
+function report_state_error(message, error) {
+  var notice = document.getElementById("save-error");
+  notice.textContent = message + " " + error.message;
+  notice.hidden = false;
+  console.error(message, error);
+}
 
-    var modifier_deck_section = document.getElementById("modifier-container");
-    var showmodifierdeck = document.getElementById("showmodifierdeck");
-    if (!showmodifierdeck.checked && modifier_deck_section) {
-      modifier_deck_section.style.display = "none";
-    }
+function save_app_state() {
+  if (restore_failed) {
+    return;
+  }
+  try {
+    var game = active_game === null ? null :
+      encode_game(active_game, visible_ability_decks, modifier_deck);
+    write_app_state(game, get_view_state(settings_controls));
+    document.getElementById("applyload").disabled = game === null;
+    document.getElementById("save-error").hidden = true;
+  } catch (error) {
+    report_state_error("Could not save the app state.", error);
+  }
+}
+
+function restore_app_state() {
+  var saved = read_app_state();
+  if (saved === null) {
+    return;
+  }
+  var game = saved.game === null ? null : decode_game(saved.game);
+  restore_view_state(saved.view, settings_controls);
+  if (game !== null) {
+    show_game(game.decks, game.modifier, game.options);
+  }
+}
+
+function save_preference(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (error) {
+    report_state_error("Could not save the setting.", error);
   }
 }
 
 function init() {
+  init_ui();
   var deckspage = document.getElementById("deckspage");
   var scenariospage = document.getElementById("scenariospage");
   var applydeckbtn = document.getElementById("applydecks");
   var applyscenariobtn = document.getElementById("applyscenario");
   var applyloadbtn = document.getElementById("applyload");
-  var cardsizeplus = document.getElementById("cardsizeplus");
-  var cardsizeminus = document.getElementById("cardsizeminus");
-  var cardsizereset = document.getElementById("cardsizereset");
-  var cardsizevalue = document.getElementById("cardsizevalue");
-  var showmodifierdeck = document.getElementById("showmodifierdeck");
   var enableanimations = document.getElementById("enableanimations");
-
-  enableanimations.checked = draw_animation_enabled;
-  if (!draw_animation_enabled) {
-    document.body.classList.add("no-animation");
-  }
-  enableanimations.onchange = function () {
-    draw_animation_enabled = this.checked;
-    if (draw_animation_enabled) {
-      document.body.classList.remove("no-animation");
-    } else {
-      document.body.classList.add("no-animation");
-    }
-    localStorage.setItem("draw_animation_enabled", draw_animation_enabled);
-  };
-
-  if (cardsizevalue) {
-    cardsizevalue.textContent = Math.round(card_size_factor * 100) + "%";
-  }
-
   var decklist = new DeckList();
   var scenariolist = new ScenarioList(SCENARIO_DEFINITIONS);
-
   deckspage.insertAdjacentElement("afterbegin", decklist.ul);
   scenariospage.insertAdjacentElement("afterbegin", scenariolist.ul);
+  settings_controls = get_settings_fields(decklist, scenariolist);
 
-  load_saved_state(decklist, scenariolist);
+  try {
+    var size = localStorage.getItem("card_size_factor");
+    if (size !== null) {
+      var factor = Number(size);
+      require_saved_state(Number.isFinite(factor) && factor >= 0.1);
+      card_size_factor = factor;
+    }
+    var animation = localStorage.getItem("draw_animation_enabled");
+    require_saved_state(animation === null || animation === "true" || animation === "false");
+    draw_animation_enabled = animation !== "false";
+  } catch (error) {
+    report_state_error("Could not restore the settings.", error);
+  }
+
+  try {
+    restore_app_state();
+  } catch (error) {
+    restore_failed = true;
+    report_state_error("Could not restore the app state.", error);
+  }
+
+  if (active_game === null) {
+    update_card_size();
+  }
+  applyloadbtn.disabled = active_game === null;
+  enableanimations.checked = draw_animation_enabled;
+  toggle_class(document.body, "no-animation", !draw_animation_enabled);
+  enableanimations.onchange = function () {
+    draw_animation_enabled = this.checked;
+    toggle_class(document.body, "no-animation", !draw_animation_enabled);
+    save_preference("draw_animation_enabled", draw_animation_enabled);
+  };
+  Object.values(settings_controls).forEach(function (field) {
+    field.oninput = save_app_state;
+  });
 
   applydeckbtn.onclick = function () {
-    localStorage.clear();
-    var selected_deck_names = decklist.get_selected_decks();
-    write_to_storage(
-      "selected_deck_names",
-      JSON.stringify(selected_deck_names)
-    );
-    var selected_decks = selected_deck_names.map(function (deck_names) {
-      return load_ability_deck(
-        deck_names.class,
-        deck_names.name,
-        deck_names.level
-      );
-    });
-    apply_deck_selection(selected_decks, true);
-    var showmodifierdeck_deckspage = document.getElementById(
-      "showmodifierdeck-deckspage"
-    );
-    var modifier_deck_section = document.getElementById("modifier-container");
-    if (!showmodifierdeck_deckspage.checked) {
-      modifier_deck_section.style.display = "none";
-    } else {
-      modifier_deck_section.style.display = "block";
+    try {
+      var selection = decklist.get_selected_decks();
+      start_game(selection, {
+        scenario: null,
+        show_modifier_deck: settings_controls.custom_modifier.checked,
+        stats_collapsed: active_game !== null && active_game.stats_collapsed,
+      }, false);
+      save_app_state();
+    } catch (error) {
+      report_state_error("Could not apply the deck selection.", error);
     }
   };
 
   applyscenariobtn.onclick = function () {
     try {
-      localStorage.clear();
-    } catch (e) {
-      console.error("Local storage is required");
-      return;
+      var selection = scenariolist.get_scenario_decks();
+      var scenario = {
+        number: scenariolist.get_number(),
+        level: scenariolist.level_selector.get_selection(),
+      };
+      start_game(selection, {
+        scenario: scenario,
+        show_modifier_deck: settings_controls.scenario_modifier.checked,
+        stats_collapsed: false,
+      }, true);
+      decklist.set_selection(selection);
+      show_settingspane(false);
+      save_app_state();
+    } catch (error) {
+      report_state_error("Could not apply the scenario.", error);
     }
-    var selected_deck_names = scenariolist.get_scenario_decks();
-    write_to_storage("scenario_number", scenariolist.spinner.value);
-    write_to_storage(
-      "scenario_level",
-      scenariolist.level_selector.get_selection()
-    );
-    write_to_storage(
-      "selected_deck_names",
-      JSON.stringify(selected_deck_names)
-    );
-    decklist.set_selection(selected_deck_names);
-    var selected_decks = selected_deck_names.map(function (deck_names) {
-      return load_ability_deck(
-        deck_names.class,
-        deck_names.name,
-        deck_names.level
-      );
-    });
-    apply_deck_selection(selected_decks, false);
-    var modifier_deck_section = document.getElementById("modifier-container");
-    if (!showmodifierdeck.checked) {
-      modifier_deck_section.style.display = "none";
-    } else {
-      modifier_deck_section.style.display = "block";
-    }
-
-    // assume user is ready to go, so hide the Settings menu
-    show_settingspane(settingspane, cancelarea, false);
   };
 
   applyloadbtn.onclick = function () {
-    var selected_deck_names = JSON.parse(
-      get_from_storage("selected_deck_names")
-    );
-    var scenario_number = parseInt(get_from_storage("scenario_number"));
-    if (!isNaN(scenario_number)) {
-      scenariolist.spinner.value = scenario_number;
-    }
-    var scenario_level = parseInt(get_from_storage("scenario_level"));
-    if (!isNaN(scenario_level)) {
-      scenariolist.level_selector.set_value(scenario_level);
-    }
-    decklist.set_selection(selected_deck_names);
-    var selected_decks = selected_deck_names.map(function (deck_names) {
-      return load_ability_deck(
-        deck_names.class,
-        deck_names.name,
-        deck_names.level
-      );
-    });
-    apply_deck_selection(selected_decks, true);
-    var modifier_deck_section = document.getElementById("modifier-container");
-    if (!showmodifierdeck.checked) {
-      modifier_deck_section.style.display = "none";
-    } else {
-      modifier_deck_section.style.display = "block";
+    try {
+      var game = decode_game(read_app_state().game);
+      show_game(game.decks, game.modifier, game.options);
+      decklist.set_selection(game.decks);
+      if (game.options.scenario !== null) {
+        scenariolist.spinner.value = game.options.scenario.number;
+        scenariolist.level_selector.set_value(game.options.scenario.level);
+      }
+      settings_controls.scenario_modifier.checked = game.options.show_modifier_deck;
+      settings_controls.custom_modifier.checked = game.options.show_modifier_deck;
+      save_app_state();
+    } catch (error) {
+      report_state_error("Could not load the previous scenario.", error);
     }
   };
 
-  cardsizeplus.onclick = function () {
-    card_size_factor += 0.1;
+  function set_card_size(value) {
+    card_size_factor = value;
     update_card_size();
+    save_preference("card_size_factor", card_size_factor);
+  }
+  document.getElementById("cardsizeplus").onclick = function () {
+    set_card_size(card_size_factor + 0.1);
   };
-
-  cardsizeminus.onclick = function () {
-    card_size_factor = Math.max(0.1, card_size_factor - 0.1);
-    update_card_size();
+  document.getElementById("cardsizeminus").onclick = function () {
+    set_card_size(Math.max(0.1, card_size_factor - 0.1));
   };
-
-  cardsizereset.onclick = function () {
-    card_size_factor = DEFAULT_CARD_SIZE_FACTOR;
-    update_card_size();
+  document.getElementById("cardsizereset").onclick = function () {
+    set_card_size(DEFAULT_CARD_SIZE_FACTOR);
   };
-
-  window.onresize = refresh_ui.bind(null, visible_ability_decks);
+  window.onresize = refresh_ui;
 }

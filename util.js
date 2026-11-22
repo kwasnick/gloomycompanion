@@ -68,11 +68,6 @@ function dict_values(dict)
     return values;
 }
 
-function concat_arrays(arrays)
-{
-    return Array.prototype.concat.apply([], arrays);
-}
-
 function is_checked(input)
 {
     return (('checked' in input) ? input.checked : false);
@@ -86,30 +81,4 @@ function input_value(input)
 function remove_empty_strings(array)
 {
     return array.filter(Boolean);
-}
-
-function write_to_storage(name, value) {
-    try {
-        localStorage.setItem(name, value);
-    } catch (e) {
-        console.error('Local storage is required');
-    }
-    // console.info("Local storage write:", name, value);
-}
-
-function get_from_storage(name) {
-    try {
-        return localStorage.getItem(name);
-    } catch (e) {
-        console.error('Local storage is required');
-    }
-}
-
-function find_in_discard(discard, id) {
-    for (var i=0; i < discard.length; i++) {
-        if (discard[i].id === id) {
-            return discard[i];
-        }
-    }
-    return null;
 }

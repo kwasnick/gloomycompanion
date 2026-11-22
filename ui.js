@@ -1,69 +1,95 @@
+var settingspane;
+var cancelarea;
+var active_settings_tab;
+var settings_tabs;
+var settings_pages;
 
-
-function activate_tab(tabs, pages, activetab)
-{
-    var key;
-    for (key in tabs)
-    {
-        tabs[key].className = (key == activetab) ? "" : "inactive";
-    }
-    for (key in pages)
-    {
-        pages[key].className = (key == activetab) ? "tabbody" : "inactive tabbody";
-    }
+function activate_tab(tab) {
+  Object.keys(settings_tabs).forEach(function (key) {
+    toggle_class(settings_tabs[key], "inactive", key !== tab);
+    toggle_class(settings_pages[key], "inactive", key !== tab);
+  });
+  active_settings_tab = tab;
 }
 
-function show_settingspane(pane, cancelarea, show)
-{
-    pane.className = show ? "pane" : "pane inactive";
-    cancelarea.style.display = show ? "initial" : "none";
+function show_settingspane(show) {
+  toggle_class(settingspane, "inactive", !show);
+  cancelarea.style.display = show ? "initial" : "none";
 }
 
-// globals
-var settingspane,
-    settingsbtn,
-    cancelarea
+function init_ui() {
+  settings_tabs = {
+    scenarios: document.getElementById("scenariotab"),
+    decks: document.getElementById("deckstab"),
+  };
+  settings_pages = {
+    scenarios: document.getElementById("scenariospage"),
+    decks: document.getElementById("deckspage"),
+  };
+  settingspane = document.getElementById("settingspane");
+  cancelarea = document.getElementById("cancelarea");
 
-function init_ui()
-{
-    var tabs =
-    {
-        scenarios:      document.getElementById("scenariotab"),
-        decks:          document.getElementById("deckstab")
+  Object.keys(settings_tabs).forEach(function (tab) {
+    settings_tabs[tab].onclick = function () {
+      activate_tab(tab);
+      save_app_state();
     };
-    var pages =
-    {
-        scenarios:      document.getElementById("scenariospage"),
-        decks:          document.getElementById("deckspage")
-    };
-
-    settingspane =      document.getElementById("settingspane");
-    settingsbtn =       document.getElementById("settingsbtn");
-    cancelarea =        document.getElementById("cancelarea");
-
-    // TODO: is this a typo or a global?
-    scenariotab.onclick = function(e)
-    {
-        activate_tab(tabs, pages, "scenarios");
-    }
-
-    // TODO: is this a typo or a global?
-    deckstab.onclick = function(e)
-    {
-        activate_tab(tabs, pages, "decks");
-    }
-
-    settingsbtn.onclick = function(e)
-    {
-        show_settingspane(settingspane, cancelarea, true);
-    }
-
-    cancelarea.onclick = function(e)
-    {
-        show_settingspane(settingspane, cancelarea, false);
-    }
-
-    activate_tab(tabs, pages, "scenarios");
-	
+  });
+  document.getElementById("settingsbtn").onclick = function () {
+    show_settingspane(true);
+    save_app_state();
+  };
+  cancelarea.onclick = function () {
+    show_settingspane(false);
+    save_app_state();
+  };
+  activate_tab("scenarios");
 }
 
+function get_settings_fields(decklist, scenariolist) {
+  var fields = {
+    scenario_number: scenariolist.spinner,
+    scenario_level: scenariolist.level_selector.spinner,
+    global_level: decklist.global_level_selector.spinner,
+    scenario_modifier: document.getElementById("showmodifierdeck"),
+    custom_modifier: document.getElementById("showmodifierdeck-deckspage"),
+  };
+  Object.keys(decklist.checkboxes).forEach(function (name) {
+    fields["selected:" + name] = decklist.checkboxes[name];
+    fields["level:" + name] = decklist.level_selectors[name].spinner;
+  });
+  return fields;
+}
+
+function get_view_state(fields) {
+  var values = {};
+  Object.keys(fields).forEach(function (key) {
+    var field = fields[key];
+    values[key] = field.type === "checkbox" ? field.checked : field.value;
+  });
+  return {
+    tab: active_settings_tab,
+    settings_open: !settingspane.classList.contains("inactive"),
+    fields: values,
+  };
+}
+
+function restore_view_state(view, fields) {
+  require_saved_state(view && Object.hasOwn(settings_tabs, view.tab) &&
+    typeof view.settings_open === "boolean" && view.fields);
+  var keys = Object.keys(fields);
+  keys.forEach(function (key) {
+    var type = fields[key].type === "checkbox" ? "boolean" : "string";
+    require_saved_state(typeof view.fields[key] === type);
+  });
+  keys.forEach(function (key) {
+    var field = fields[key];
+    if (field.type === "checkbox") {
+      field.checked = view.fields[key];
+    } else {
+      field.value = view.fields[key];
+    }
+  });
+  activate_tab(view.tab);
+  show_settingspane(view.settings_open);
+}
